@@ -1,0 +1,26 @@
+@page "/machine/{MachineId}/partschange"
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>部品変更</PageTitle>
+
+<h1>部品変更 <span class="text-muted fs-5">(@MachineId)</span></h1>
+
+<div class="mb-3">
+    <label>変更前品番: <input class="form-control d-inline w-auto" /></label>
+    <label class="ms-3">変更後品番: <input class="form-control d-inline w-auto" /></label>
+    <label class="ms-3">変更後個数: <input type="number" class="form-control d-inline w-auto" /></label>
+</div>
+<div class="mb-3">
+    <label>変更日: <input type="date" class="form-control d-inline w-auto" /></label>
+    <label class="ms-3">互換: <input class="form-control d-inline w-auto" /></label>
+    <label class="ms-3">背景: <input class="form-control d-inline w-auto" /></label>
+    <label class="ms-3">備考: <input class="form-control d-inline w-auto" /></label>
+</div>
+<div>
+    <button class="btn btn-primary me-2">部品一覧に反映</button>
+    <a class="btn btn-secondary" href="/machine/@MachineId/parts">閉じる</a>
+</div>
+
+@code {
+    [Parameter] public string? MachineId { get; set; }
+} 

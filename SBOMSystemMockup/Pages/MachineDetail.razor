@@ -1,0 +1,68 @@
+@page "/machine/{MachineId}"
+
+<PageTitle>個体詳細 - @MachineId</PageTitle>
+
+<h1>個体詳細 <span class="text-muted fs-4">(@MachineId)</span></h1>
+
+<div class="card">
+    <div class="card-header">
+        ヘッダー情報
+    </div>
+    <div class="card-body">
+        <h5 class="card-title">@machine?.Name</h5>
+        <p class="card-text">ここに機械のヘッダー情報が表示されます。</p>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        個体基本情報
+    </div>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item"><strong>ステータス:</strong> @machine?.Status</li>
+        <li class="list-group-item"><strong>設置場所:</strong> 第2工場 Aライン</li>
+        <li class="list-group-item"><strong>導入日:</strong> 2023-04-10</li>
+    </ul>
+</div>
+
+<div class="mt-4">
+    <button class="btn btn-success" @onclick="NavigateToPartsList">
+        部品一覧画面を開く
+    </button>
+    <a href="/" class="btn btn-secondary">台帳一覧に戻る</a>
+</div>
+
+
+@code {
+    [Parameter]
+    public string? MachineId { get; set; }
+
+    private Machine? machine;
+
+    [Inject] NavigationManager Nav { get; set; } = default!;
+
+    // TODO: 本来はDBやAPIから取得する
+    private static readonly Machine[] AllMachines = new[]
+    {
+        new Machine { Id = "M-001", Name = "高速充填機 A-1", Status = "稼働中" },
+        new Machine { Id = "M-002", Name = "パッケージング機 B-5", Status = "メンテナンス中" },
+        new Machine { Id = "M-003", Name = "ラベル貼り機 C-2", Status = "停止中" }
+    };
+
+    protected override void OnInitialized()
+    {
+        machine = AllMachines.FirstOrDefault(m => m.Id == MachineId);
+    }
+
+    private void NavigateToPartsList()
+    {
+        Nav.NavigateTo($"/machine/{MachineId}/parts");
+    }
+
+    public class Machine
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
+} 

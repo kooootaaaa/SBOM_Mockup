@@ -1,0 +1,26 @@
+@page "/machine/{MachineId}/setedit"
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>セット登録・編集</PageTitle>
+
+<h1>セット登録・編集 <span class="text-muted fs-5">(@MachineId)</span></h1>
+
+<div class="mb-3">
+    <label>セット品番: <input class="form-control d-inline w-auto" value="S-001" /></label>
+</div>
+<div class="mb-3">
+    <div>子部品一覧:</div>
+    <ul>
+        <li>モーター <button class="btn btn-sm btn-danger ms-2">削除</button></li>
+        <li>ベルト <button class="btn btn-sm btn-danger ms-2">削除</button></li>
+    </ul>
+    <button class="btn btn-sm btn-secondary">子部品追加</button>
+</div>
+<div>
+    <button class="btn btn-success me-2">確定</button>
+    <a class="btn btn-secondary" href="/machine/@MachineId/parts">閉じる</a>
+</div>
+
+@code {
+    [Parameter] public string? MachineId { get; set; }
+} 

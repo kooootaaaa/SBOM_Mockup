@@ -1,0 +1,32 @@
+@page "/machine/{MachineId}/partsfetch"
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>部品情報取得</PageTitle>
+
+<h1>部品情報取得 <span class="text-muted fs-5">(@MachineId)</span></h1>
+
+<div class="mb-3">
+    <label>型式: <input class="form-control d-inline w-auto" value="A-100" /></label>
+    <label class="ms-3">日付: <input type="date" class="form-control d-inline w-auto" value="2025-06-22" /></label>
+    <button class="btn btn-primary ms-3">部品情報取得</button>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">取得結果</div>
+    <div class="card-body">
+        <ul>
+            <li>モーター x2</li>
+            <li>ベルト x1</li>
+            <li>センサー x3</li>
+        </ul>
+    </div>
+</div>
+
+<div>
+    <button class="btn btn-success me-2">取得結果登録</button>
+    <a class="btn btn-secondary" href="/machine/@MachineId/parts">閉じる</a>
+</div>
+
+@code {
+    [Parameter] public string? MachineId { get; set; }
+} 

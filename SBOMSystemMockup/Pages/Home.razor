@@ -1,0 +1,53 @@
+﻿@page "/"
+
+<PageTitle>機械管理台帳</PageTitle>
+
+<h1>機械管理台帳</h1>
+
+<p>管理対象の機械一覧です。詳細を表示する機械を選択してください。</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>機械番号</th>
+            <th>機械名</th>
+            <th>ステータス</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var machine in machines)
+        {
+            <tr>
+                <td>@machine.Id</td>
+                <td>@machine.Name</td>
+                <td>@machine.Status</td>
+                <td>
+                    <a href="@($"/machine/{machine.Id}")" class="btn btn-primary">詳細表示</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private Machine[]? machines;
+
+    protected override void OnInitialized()
+    {
+        // サンプルデータの作成
+        machines = new[]
+        {
+            new Machine { Id = "M-001", Name = "高速充填機 A-1", Status = "稼働中" },
+            new Machine { Id = "M-002", Name = "パッケージング機 B-5", Status = "メンテナンス中" },
+            new Machine { Id = "M-003", Name = "ラベル貼り機 C-2", Status = "停止中" }
+        };
+    }
+
+    public class Machine
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
+}
