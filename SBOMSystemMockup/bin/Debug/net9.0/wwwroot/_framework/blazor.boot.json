@@ -1,14 +1,21 @@
 {
   "mainAssemblyName": "SBOMSystemMockup",
   "resources": {
-    "hash": "sha256-yR0yjwJYv6AhvcWWW3QqimUDQxcuV65WDnXk1FwxKts=",
+    "hash": "sha256-TmvGKIx+YfVi4T+y68UouyNjD1sIQKoXYtRarAkWJgY=",
     "fingerprinting": {
+      "Azure.Core.92q6rqqhly.wasm": "Azure.Core.wasm",
+      "Azure.Identity.b6ekoqlu3w.wasm": "Azure.Identity.wasm",
       "Microsoft.AspNetCore.Authorization.phaa9r44xv.wasm": "Microsoft.AspNetCore.Authorization.wasm",
       "Microsoft.AspNetCore.Components.4o2vz6uw5j.wasm": "Microsoft.AspNetCore.Components.wasm",
       "Microsoft.AspNetCore.Components.Forms.1ddspp16i2.wasm": "Microsoft.AspNetCore.Components.Forms.wasm",
       "Microsoft.AspNetCore.Components.Web.wjexe30cog.wasm": "Microsoft.AspNetCore.Components.Web.wasm",
       "Microsoft.AspNetCore.Components.WebAssembly.2yt2k81j3x.wasm": "Microsoft.AspNetCore.Components.WebAssembly.wasm",
       "Microsoft.AspNetCore.Metadata.4eagaotj1c.wasm": "Microsoft.AspNetCore.Metadata.wasm",
+      "Microsoft.Bcl.AsyncInterfaces.9wftx6xvg7.wasm": "Microsoft.Bcl.AsyncInterfaces.wasm",
+      "Microsoft.Bcl.Cryptography.eoo0iygfe9.wasm": "Microsoft.Bcl.Cryptography.wasm",
+      "Microsoft.Data.SqlClient.q28jmtiwtc.wasm": "Microsoft.Data.SqlClient.wasm",
+      "Microsoft.Extensions.Caching.Abstractions.pvdzb3a5kr.wasm": "Microsoft.Extensions.Caching.Abstractions.wasm",
+      "Microsoft.Extensions.Caching.Memory.cgyczwm7er.wasm": "Microsoft.Extensions.Caching.Memory.wasm",
       "Microsoft.Extensions.Configuration.a20cmtwj3w.wasm": "Microsoft.Extensions.Configuration.wasm",
       "Microsoft.Extensions.Configuration.Abstractions.jdjwdbrxb5.wasm": "Microsoft.Extensions.Configuration.Abstractions.wasm",
       "Microsoft.Extensions.Configuration.Binder.y7ybdi8i13.wasm": "Microsoft.Extensions.Configuration.Binder.wasm",
@@ -23,8 +30,37 @@
       "Microsoft.Extensions.Logging.Abstractions.7bglk34tl5.wasm": "Microsoft.Extensions.Logging.Abstractions.wasm",
       "Microsoft.Extensions.Options.bwt6p2r0a3.wasm": "Microsoft.Extensions.Options.wasm",
       "Microsoft.Extensions.Primitives.vutb1mf5cz.wasm": "Microsoft.Extensions.Primitives.wasm",
+      "Microsoft.Identity.Client.6o62jh44up.wasm": "Microsoft.Identity.Client.wasm",
+      "Microsoft.Identity.Client.Extensions.Msal.z7cdsa1cr0.wasm": "Microsoft.Identity.Client.Extensions.Msal.wasm",
+      "Microsoft.IdentityModel.Abstractions.xb1w5ge9rz.wasm": "Microsoft.IdentityModel.Abstractions.wasm",
+      "Microsoft.IdentityModel.JsonWebTokens.5soqkaok2y.wasm": "Microsoft.IdentityModel.JsonWebTokens.wasm",
+      "Microsoft.IdentityModel.Logging.mx66nwmtsp.wasm": "Microsoft.IdentityModel.Logging.wasm",
+      "Microsoft.IdentityModel.Protocols.jdke4l5q1g.wasm": "Microsoft.IdentityModel.Protocols.wasm",
+      "Microsoft.IdentityModel.Protocols.OpenIdConnect.6y3327r6jr.wasm": "Microsoft.IdentityModel.Protocols.OpenIdConnect.wasm",
+      "Microsoft.IdentityModel.Tokens.kz365q7i1a.wasm": "Microsoft.IdentityModel.Tokens.wasm",
       "Microsoft.JSInterop.fzkuir7tme.wasm": "Microsoft.JSInterop.wasm",
       "Microsoft.JSInterop.WebAssembly.btoflm7i7s.wasm": "Microsoft.JSInterop.WebAssembly.wasm",
+      "Microsoft.SqlServer.Server.yamodpu5qp.wasm": "Microsoft.SqlServer.Server.wasm",
+      "System.ClientModel.8j5eiu0uyl.wasm": "System.ClientModel.wasm",
+      "System.Configuration.ConfigurationManager.h4r5q8xowu.wasm": "System.Configuration.ConfigurationManager.wasm",
+      "System.Diagnostics.EventLog.w7juhwxxgl.wasm": "System.Diagnostics.EventLog.wasm",
+      "System.IdentityModel.Tokens.Jwt.4vfh376ef5.wasm": "System.IdentityModel.Tokens.Jwt.wasm",
+      "System.Memory.Data.9qfc8r8gag.wasm": "System.Memory.Data.wasm",
+      "System.Security.Cryptography.Pkcs.co2absxvec.wasm": "System.Security.Cryptography.Pkcs.wasm",
+      "System.Security.Cryptography.ProtectedData.m6x7jdj1ru.wasm": "System.Security.Cryptography.ProtectedData.wasm",
+      "Microsoft.Data.SqlClient.resources.zoor4ofe23.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.j50zerzml3.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.lsn4tr1ei6.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.162pikjfxo.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.4e9rukbwg7.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.e5mo19a8k4.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.xt4111vkvr.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.uu6264vhj1.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.3dldq50bir.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.7aetltpb69.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.9flbse11v9.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.wiqavfanqw.wasm": "Microsoft.Data.SqlClient.resources.wasm",
+      "Microsoft.Data.SqlClient.resources.g47qe8isu4.wasm": "Microsoft.Data.SqlClient.resources.wasm",
       "Microsoft.CSharp.9gws8s7zmg.wasm": "Microsoft.CSharp.wasm",
       "Microsoft.VisualBasic.Core.hev5t09xbg.wasm": "Microsoft.VisualBasic.Core.wasm",
       "Microsoft.VisualBasic.wy3cb00pkv.wasm": "Microsoft.VisualBasic.wasm",
@@ -201,8 +237,8 @@
       "icudt_CJK.tjcz0u77k5.dat": "icudt_CJK.dat",
       "icudt_EFIGS.tptq2av103.dat": "icudt_EFIGS.dat",
       "icudt_no_CJK.lfu7j35m59.dat": "icudt_no_CJK.dat",
-      "SBOMSystemMockup.37rglm4co1.wasm": "SBOMSystemMockup.wasm",
-      "SBOMSystemMockup.3hvg97fm0e.pdb": "SBOMSystemMockup.pdb"
+      "SBOMSystemMockup.wzqy1ezwns.wasm": "SBOMSystemMockup.wasm",
+      "SBOMSystemMockup.lfz8migvhj.pdb": "SBOMSystemMockup.pdb"
     },
     "jsModuleNative": {
       "dotnet.native.rtblh4npr3.js": "sha256-HyBzcYNpT2l19+f1bpjNOa1oFoLe3K4JIQ6GsFK5m6I="
@@ -223,12 +259,19 @@
       "System.Private.CoreLib.05ksnw82w3.wasm": "sha256-9EvnmdM9VqB+KcdsPAgDZeLBYWsBsb0orMhjExU3mEI="
     },
     "assembly": {
+      "Azure.Core.92q6rqqhly.wasm": "sha256-cUx0yT4TBboCr8yulFrimAvC9ecu4FtrhfEZ7T8ragU=",
+      "Azure.Identity.b6ekoqlu3w.wasm": "sha256-wxR1E0zJLWYxnckYUOXZsbZoUjCYCwgg3aYbYbCLaGo=",
       "Microsoft.AspNetCore.Authorization.phaa9r44xv.wasm": "sha256-Y3fgwAJNQ1yRlUO/TmUUh+77TdIqc7iddqjEvPR8SYc=",
       "Microsoft.AspNetCore.Components.4o2vz6uw5j.wasm": "sha256-RNrz85tP7WgWpdvE1eS/GYK4a13HlP+M2vUrcuUQ7gE=",
       "Microsoft.AspNetCore.Components.Forms.1ddspp16i2.wasm": "sha256-pX/9Jim687IVU3EMxyiMWqTI8va52qCZbr3XQS89mfM=",
       "Microsoft.AspNetCore.Components.Web.wjexe30cog.wasm": "sha256-7IEhLHI4WHU94pzQsH0Imc7vFz/xozOl3e+WwJj4Q/c=",
       "Microsoft.AspNetCore.Components.WebAssembly.2yt2k81j3x.wasm": "sha256-GojMMsHQLaEvovHD2RL8dC0+ZBhqZnxwi6C9Py3ZVd8=",
       "Microsoft.AspNetCore.Metadata.4eagaotj1c.wasm": "sha256-nNIfMmCMSAl3ZNjukuZFngZhLEQI6vXuHmJwcloNMf0=",
+      "Microsoft.Bcl.AsyncInterfaces.9wftx6xvg7.wasm": "sha256-uV6JPE8pFJZ3vgxDKUeimvMSk+wGuYyOKWg5xKqP7Qo=",
+      "Microsoft.Bcl.Cryptography.eoo0iygfe9.wasm": "sha256-7lYAc+yjYuc7rEBTFd08iTFrHY/keh+HT64gveqNCdo=",
+      "Microsoft.Data.SqlClient.q28jmtiwtc.wasm": "sha256-ojkqlARv5IEq/tYcsnhn3PWb3K6Qo/AX/LTeaOPQquE=",
+      "Microsoft.Extensions.Caching.Abstractions.pvdzb3a5kr.wasm": "sha256-+xfvLpMUeR6teEdMxXXJTtRNOVWRtzmXImBVIC/WSvk=",
+      "Microsoft.Extensions.Caching.Memory.cgyczwm7er.wasm": "sha256-bNxXVGhVFh5P4WYWzHKVb6D3R2TY6n9yi0JN9ATyTas=",
       "Microsoft.Extensions.Configuration.a20cmtwj3w.wasm": "sha256-UrUUb9NBNLd0uMi5+Tdio9qxV8ddqaCNW2ast3KfP1U=",
       "Microsoft.Extensions.Configuration.Abstractions.jdjwdbrxb5.wasm": "sha256-F1OVGUAEgR1HPcC3sfXDM0JZypB4t4m0Xez/7bGD+70=",
       "Microsoft.Extensions.Configuration.Binder.y7ybdi8i13.wasm": "sha256-AsmkFYYodnrvBo49LFwyS3k8kodcN2UFNjcPR59Lt/4=",
@@ -243,8 +286,24 @@
       "Microsoft.Extensions.Logging.Abstractions.7bglk34tl5.wasm": "sha256-LbqNFiczB9qwkZqoo1ig7ySL187gUWgMKNc4Lt/3ll8=",
       "Microsoft.Extensions.Options.bwt6p2r0a3.wasm": "sha256-240HONkBeTMj+px7kStA4wZzCAbBgKM14lDROyv0JRQ=",
       "Microsoft.Extensions.Primitives.vutb1mf5cz.wasm": "sha256-51T9UQfKfLlYCAQqg2dm09LSlyXkc7FI7tpU8c6D9c8=",
+      "Microsoft.Identity.Client.6o62jh44up.wasm": "sha256-RqUUQdll3GxLo8wtacfmL9tJYkenzrd0x2atOJoCaEA=",
+      "Microsoft.Identity.Client.Extensions.Msal.z7cdsa1cr0.wasm": "sha256-4WyJjsOVdSuGyNEo32OkpX4Mx1kOu0iPXbftEFdTa9Q=",
+      "Microsoft.IdentityModel.Abstractions.xb1w5ge9rz.wasm": "sha256-vVMr6An66zZRrqjhjP024rdNlGmOyD+PvsfUSMCTnFw=",
+      "Microsoft.IdentityModel.JsonWebTokens.5soqkaok2y.wasm": "sha256-C4QBkYopr4rHaurOhEMnDA462xpa0HZOqUe6qm9pM2U=",
+      "Microsoft.IdentityModel.Logging.mx66nwmtsp.wasm": "sha256-ZgARl3HbamX3unF/trR9Dh/tAfCdvpVtSWMc8DCF0qY=",
+      "Microsoft.IdentityModel.Protocols.jdke4l5q1g.wasm": "sha256-WdmQqH/etKTqaDoHaidn45QGAnG4ty/nG4RXQU5nLzk=",
+      "Microsoft.IdentityModel.Protocols.OpenIdConnect.6y3327r6jr.wasm": "sha256-QttkpmYY2pvEMsSwlDheJ5cbpV0Rn3hi8YTwAkISwIo=",
+      "Microsoft.IdentityModel.Tokens.kz365q7i1a.wasm": "sha256-sBbM4MY3WSRX2k9gaSds9ZyRn7XFCrzpKL9I0oqZ+/Q=",
       "Microsoft.JSInterop.fzkuir7tme.wasm": "sha256-uxPnAz9kpk5BUd/EcsRdGT34myycGV2+kmtVuYQjFaQ=",
       "Microsoft.JSInterop.WebAssembly.btoflm7i7s.wasm": "sha256-oZeP4uOrwjGBnlPH0eR1lhQzge3xN3O2Qyh39Fd0eFY=",
+      "Microsoft.SqlServer.Server.yamodpu5qp.wasm": "sha256-Fig+5hq00gGQlXAgSnyFlUlWyhlx9f+yPJb4INt3gNc=",
+      "System.ClientModel.8j5eiu0uyl.wasm": "sha256-hB3YvRqtJh9HC69ryOu2jplvTqYa8opx1wPk+N/txKs=",
+      "System.Configuration.ConfigurationManager.h4r5q8xowu.wasm": "sha256-b12tS5PK3J7aZQf8ndpxprZkG3L77KegByXvugeqqlc=",
+      "System.Diagnostics.EventLog.w7juhwxxgl.wasm": "sha256-zD0pt4v+F1ZzuWXEFquw6w+pUaaNS6Or0bLXbJBlhb0=",
+      "System.IdentityModel.Tokens.Jwt.4vfh376ef5.wasm": "sha256-kKnYmK9eI7RFA2v2weGspPIqZigRO1xNO+XRdhYQ+A4=",
+      "System.Memory.Data.9qfc8r8gag.wasm": "sha256-oa47oEq24c04+SqrF0aDKfadFgOh7up7I5vdcwdrLOw=",
+      "System.Security.Cryptography.Pkcs.co2absxvec.wasm": "sha256-DNfD9zLnKkV59RAeNl/KNmBjABmtoKDjr+J0LJ5PkMU=",
+      "System.Security.Cryptography.ProtectedData.m6x7jdj1ru.wasm": "sha256-QqUpU6iVQBer+PhJJbbxUyrI43m805wKo76qFWzyWKs=",
       "Microsoft.CSharp.9gws8s7zmg.wasm": "sha256-Sbvtu389W9lZ0DX5ydqKaJv6B/6M8iSKw1/gTZkXey4=",
       "Microsoft.VisualBasic.Core.hev5t09xbg.wasm": "sha256-x8TLQxG5v1LR/Hwp8apQyUNYXIBYbnA0uhPECMRysgY=",
       "Microsoft.VisualBasic.wy3cb00pkv.wasm": "sha256-GMqGoFsdex1ccT9cKjRB+jmcNtymylrlWXzG6fE7jro=",
@@ -412,10 +471,51 @@
       "WindowsBase.u25hol0de4.wasm": "sha256-CgB28KCiYKHd4yK6IM0PJ526P7IbRCpNkGTqn+cLwxs=",
       "mscorlib.brg9pkj3je.wasm": "sha256-FzZwzxUYYyg3qxc7Km8r50UKAmRWrIeckSFG1NTHKNU=",
       "netstandard.wuzd3f1y6v.wasm": "sha256-yAXc0deBIRkWTVXqADZfhgZtrxGgJCIbZYVtA0NjvdM=",
-      "SBOMSystemMockup.37rglm4co1.wasm": "sha256-UYXsyibCWKiXfOuLtGWVbi8qM/Zn1COt5g2fgMJv/TQ="
+      "SBOMSystemMockup.wzqy1ezwns.wasm": "sha256-1HmqXA1aloqHOCyyqiD83rPaiS2V9NVLGD7u18QF/c4="
     },
     "pdb": {
-      "SBOMSystemMockup.3hvg97fm0e.pdb": "sha256-qWdfJanwmRzhbF0c0tqcyvBEdU9HyzkrY0sXnPiH9Ko="
+      "SBOMSystemMockup.lfz8migvhj.pdb": "sha256-n3zeO8Jl6Ua9KKzF2HGyVMh6v3B2rglOmfH6+fP7OCo="
+    },
+    "satelliteResources": {
+      "cs": {
+        "Microsoft.Data.SqlClient.resources.zoor4ofe23.wasm": "sha256-wwkhJR+etMtTJLVlvrJ9U+vXZMSY2hPN5uOB0FhhQG4="
+      },
+      "de": {
+        "Microsoft.Data.SqlClient.resources.j50zerzml3.wasm": "sha256-eUrnr72gXuboxs9lqCHyCJVH3tQ+lZzNi3HSUrtCYXQ="
+      },
+      "es": {
+        "Microsoft.Data.SqlClient.resources.lsn4tr1ei6.wasm": "sha256-dWqK/l8bN102bN0XUh37hAdqbwecG4ze51EGlm8GEU8="
+      },
+      "fr": {
+        "Microsoft.Data.SqlClient.resources.162pikjfxo.wasm": "sha256-OemIrDy7y6sPCcXRgAMbsA2f5R/KcjuKLYkXnqak3Fs="
+      },
+      "it": {
+        "Microsoft.Data.SqlClient.resources.4e9rukbwg7.wasm": "sha256-tDk9daMzFGz1vEYnQz7B5IkHpGP5KfNCiXaZEdm+dRU="
+      },
+      "ja": {
+        "Microsoft.Data.SqlClient.resources.e5mo19a8k4.wasm": "sha256-3nS46CxgPknLYWtHO4Yim6uk1U73W3Ow9mZeYGml+Ws="
+      },
+      "ko": {
+        "Microsoft.Data.SqlClient.resources.xt4111vkvr.wasm": "sha256-tQNwisY3uFo4KVoMfn170QamW78pYFzxB7pXIY6s3LM="
+      },
+      "pl": {
+        "Microsoft.Data.SqlClient.resources.uu6264vhj1.wasm": "sha256-yurtK9JhOkS+VlcocE9MbF5UDCfIy7+6INQPwzCEmfw="
+      },
+      "pt-BR": {
+        "Microsoft.Data.SqlClient.resources.3dldq50bir.wasm": "sha256-Z/uD+WK2xosp/ssZCc1Iy2e5+rVvOtIGfKsP9A9vu9E="
+      },
+      "ru": {
+        "Microsoft.Data.SqlClient.resources.7aetltpb69.wasm": "sha256-jwZTlUZF+84FVx0/oHysdQZ1T4C+E5NHu4Lt6Z3KyCs="
+      },
+      "tr": {
+        "Microsoft.Data.SqlClient.resources.9flbse11v9.wasm": "sha256-NSWbZf7Qe3dyG13q5u2wZHZSVOabDuwxPVhVJfV1QE4="
+      },
+      "zh-Hans": {
+        "Microsoft.Data.SqlClient.resources.wiqavfanqw.wasm": "sha256-OOCVxJiBMynS+F6+5DtLd7+G+RkpBroK3td8KNVOV2Y="
+      },
+      "zh-Hant": {
+        "Microsoft.Data.SqlClient.resources.g47qe8isu4.wasm": "sha256-kLSKZTkHMZ0InizFWHjOtoTHJCWg+v298oiiF0V5QsY="
+      }
     }
   },
   "cacheBootResources": true,

@@ -1,0 +1,119 @@
+@page "/sqltest"
+@using Microsoft.Data.SqlClient
+@using System.Data
+
+<PageTitle>SQL接続テスト</PageTitle>
+
+<h1>T_部品マスタ接続テスト</h1>
+
+<button class="btn btn-primary" @onclick="ConnectToDatabase">データベースに接続</button>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-success") mt-3">
+        @message
+    </div>
+}
+
+@if (dataTable != null)
+{
+    <h2 class="mt-4">テーブル構造</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>カラム名</th>
+                <th>データ型</th>
+                <th>NULL許可</th>
+                <th>最大長</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (DataColumn column in dataTable.Columns)
+            {
+                <tr>
+                    <td>@column.ColumnName</td>
+                    <td>@column.DataType.Name</td>
+                    <td>@column.AllowDBNull</td>
+                    <td>@column.MaxLength</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h2 class="mt-4">サンプルデータ (最初の5件)</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    @foreach (DataColumn column in dataTable.Columns)
+                    {
+                        <th>@column.ColumnName</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Math.Min(5, dataTable.Rows.Count); i++)
+                {
+                    <tr>
+                        @foreach (var item in dataTable.Rows[i].ItemArray)
+                        {
+                            <td>@(item?.ToString() ?? "NULL")</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private string message = "";
+    private bool isError = false;
+    private DataTable? dataTable = null;
+
+    private async Task ConnectToDatabase()
+    {
+        try
+        {
+            message = "接続中...";
+            isError = false;
+            StateHasChanged();
+
+            string connectionString = "Server=192.168.1.19;Database=WeBOMSQL;Integrated Security=true;TrustServerCertificate=true;";
+            
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+                
+                // テーブル構造を取得
+                string query = @"
+                    SELECT TOP 5 * FROM T_部品マスタ;
+                    SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE 
+                    FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'T_部品マスタ';";
+                
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    using (SqlDataAdapter adapter = new SqlDataAdapter(command))
+                    {
+                        DataSet dataSet = new DataSet();
+                        adapter.Fill(dataSet);
+                        
+                        if (dataSet.Tables.Count > 0)
+                        {
+                            dataTable = dataSet.Tables[0];
+                            message = $"接続成功！T_部品マスタから{dataTable.Rows.Count}件のデータを取得しました。";
+                            isError = false;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"エラー: {ex.Message}";
+            isError = true;
+            dataTable = null;
+        }
+    }
+}

@@ -1,57 +1,264 @@
 @page "/machine/{MachineId}"
 
-<PageTitle>個体詳細 - @MachineId</PageTitle>
+<PageTitle>機械詳細 - @MachineId</PageTitle>
 
-<h1>個体詳細 <span class="text-muted fs-4">(@MachineId)</span></h1>
+<h1>機械詳細</h1>
 
-<div class="card">
-    <div class="card-header">
-        ヘッダー情報
-    </div>
-    <div class="card-body">
-        <h5 class="card-title">@machine?.Name</h5>
-        <p class="card-text">ここに機械のヘッダー情報が表示されます。</p>
+<div class="border p-3 mb-3" style="background:#f8f9fa">
+    <h5>＜個体情報＞</h5>
+    <div class="row mb-2">
+        <div class="col-md-2">
+            <label>生産ライン</label>
+            <select class="form-select" @bind="machine.ProductionLine">
+                <option>本社</option>
+                <option>外注</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label>型式</label>
+            <select class="form-select" @bind="machine.Model">
+                <option>WTD-T16I</option>
+                <option>NF-410AD</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label>枝番</label>
+            <select class="form-select" @bind="machine.BranchNo">
+                <option>1</option>
+                <option>2</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label>機種名</label>
+            <input class="form-control" @bind="machine.TypeName" />
+        </div>
+        <div class="col-md-2">
+            <label>ロットNo.</label>
+            <input class="form-control" @bind="machine.LotNo" />
+        </div>
+        <div class="col-md-2">
+            <label>ロット通番</label>
+            <input class="form-control" @bind="machine.LotSerial" />
+        </div>
+        <div class="col-md-2">
+            <label>号機番号</label>
+            <input class="form-control" @bind="machine.MachineNo" />
+        </div>
+        <div class="col-md-2">
+            <label>案件番号</label>
+            <input class="form-control" @bind="machine.ProjectNo" />
+        </div>
+        <div class="col-md-2">
+            <label>中古案件番号</label>
+            <input class="form-control" @bind="machine.UsedProjectNo" />
+        </div>
+        <div class="col-md-2">
+            <label>取付タグ番号</label>
+            <input class="form-control" @bind="machine.TagNo" />
+        </div>
+        <div class="col-md-2">
+            <label>注文書識別番号</label>
+            <input class="form-control" @bind="machine.OrderId" />
+        </div>
+        <div class="col-md-2">
+            <label>預けNo.</label>
+            <input class="form-control" @bind="machine.DepositNo" />
+        </div>
+        <div class="col-md-2">
+            <label>製造番号</label>
+            <input class="form-control" @bind="machine.Id" />
+        </div>
+        <div class="col-md-2">
+            <label>河北製造番号</label>
+            <input class="form-control" @bind="machine.KahokuId" />
+        </div>
+        <div class="col-md-2">
+            <label>過去製造番号</label>
+            <input class="form-control" @bind="machine.PastId" />
+        </div>
+        <div class="col-md-4">
+            <label>社内メモ</label>
+            <textarea class="form-control" @bind="machine.InternalMemo"></textarea>
+        </div>
+        <div class="col-md-6 d-flex align-items-end gap-4">
+            <div>
+                <input type="checkbox" class="form-check-input" @bind="machine.IsMasterOut" />
+                <label class="form-check-label ms-1">マスタ外登録</label>
+            </div>
+            <div>
+                <input type="checkbox" class="form-check-input" @bind="machine.IsDifficult" />
+                <label class="form-check-label ms-1">難</label>
+            </div>
+            <div>
+                <input type="checkbox" class="form-check-input" @bind="machine.IsNonStock" />
+                <label class="form-check-label ms-1">非在庫品</label>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="card mt-3">
-    <div class="card-header">
-        個体基本情報
+<!-- タブ切替 -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(activeTab==0 ? "active" : "")" href="#" @onclick="() => activeTab=0">製造情報</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(activeTab==1 ? "active" : "")" href="#" @onclick="() => activeTab=1">出荷情報</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(activeTab==2 ? "active" : "")" href="#" @onclick="() => activeTab=2">預け情報</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(activeTab==3 ? "active" : "")" href="#" @onclick="() => activeTab=3">メンテナンス情報</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(activeTab==4 ? "active" : "")" href="#" @onclick="() => activeTab=4">クレーム情報</a>
+    </li>
+</ul>
+<div class="border p-3 mb-3" style="min-height:100px">
+    @if (activeTab == 0)
+    {
+        <div class="row">
+            <div class="col-md-2">
+                <h6>＜基本情報＞</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label>製造種別</label>
+                        <select class="form-select mb-1" @bind="machine.ProductionType">
+                            <option>自社</option>
+                            <option>外注</option>
+                        </select>
+                        <label>現在地</label>
+                        <select class="form-select mb-1" @bind="machine.Location">
+                            <option>本社倉庫</option>
+                            <option>大高倉庫</option>
+                        </select>
+                        <label>機械状態</label>
+                        <select class="form-select mb-1" @bind="machine.Status">
+                            <option>完成</option>
+                            <option>未完成</option>
+                        </select>
+                        <label>管理区分</label>
+                        <select class="form-select mb-1" @bind="machine.ManagementType">
+                            <option>新品</option>
+                            <option>中古</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label>完成予定日</label>
+                        <input type="date" class="form-control mb-1" @bind-value="machine.ScheduledDate" @bind-value:event="oninput" />
+                        <label>仕掛品完成日</label>
+                        <input type="date" class="form-control mb-1" @bind-value="machine.InProcessDate" @bind-value:event="oninput" />
+                        <label>完成日</label>
+                        <input type="date" class="form-control mb-1" @bind-value="machine.CompletionDate" @bind-value:event="oninput" />
+                        <label>CR登録日</label>
+                        <input type="date" class="form-control mb-1" @bind-value="machine.CRDate" @bind-value:event="oninput" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <h6>＜メーカーオプション＞</h6>
+                <textarea class="form-control" rows="8" @bind="machine.MakerOption"></textarea>
+            </div>
+            <div class="col-md-2">
+                <h6>＜客先仕様＞</h6>
+                <textarea class="form-control" rows="8" @bind="machine.CustomerSpec"></textarea>
+            </div>
+            <div class="col-md-3">
+                <h6>＜仕様変更履歴＞</h6>
+                <textarea class="form-control mb-1" rows="5" @bind="machine.SpecHistory"></textarea>
+                <h6>＜改造日＞</h6>
+                <input type="date" class="form-control" @bind-value="machine.ModifyDate" @bind-value:event="oninput" />
+            </div>
+            <div class="col-md-3">
+                <h6>＜組立指示書備考＞</h6>
+                <textarea class="form-control mb-1" rows="3" @bind="machine.AssemblyNote"></textarea>
+                <h6>＜改造内容＞</h6>
+                <textarea class="form-control" rows="3" @bind="machine.ModifyContent"></textarea>
+            </div>
+        </div>
+    }
+    else if (activeTab == 1)
+    {
+        <div>出荷情報タブの内容（今後拡張）</div>
+    }
+    else if (activeTab == 2)
+    {
+        <div>預け情報タブの内容（今後拡張）</div>
+    }
+    else if (activeTab == 3)
+    {
+        <div>メンテナンス情報タブの内容（今後拡張）</div>
+    }
+    else if (activeTab == 4)
+    {
+        <div>クレーム情報タブの内容（今後拡張）</div>
+    }
+</div>
+
+<div class="mt-4 text-end mb-4">
+    <div class="d-flex justify-content-end gap-2">
+        <button class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px" @onclick="NavigateToPartsList">部品一覧画面を開く</button>
+        <button class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px" @onclick="OnRegister">登録</button>
+        <a href="/" class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px">キャンセル</a>
     </div>
-    <ul class="list-group list-group-flush">
-        <li class="list-group-item"><strong>ステータス:</strong> @machine?.Status</li>
-        <li class="list-group-item"><strong>設置場所:</strong> 第2工場 Aライン</li>
-        <li class="list-group-item"><strong>導入日:</strong> 2023-04-10</li>
-    </ul>
 </div>
-
-<div class="mt-4">
-    <button class="btn btn-success" @onclick="NavigateToPartsList">
-        部品一覧画面を開く
-    </button>
-    <a href="/" class="btn btn-secondary">台帳一覧に戻る</a>
-</div>
-
 
 @code {
     [Parameter]
     public string? MachineId { get; set; }
 
-    private Machine? machine;
+    private int activeTab = 0;
 
-    [Inject] NavigationManager Nav { get; set; } = default!;
+    private Machine machine = new Machine();
 
-    // TODO: 本来はDBやAPIから取得する
-    private static readonly Machine[] AllMachines = new[]
-    {
-        new Machine { Id = "M-001", Name = "高速充填機 A-1", Status = "稼働中" },
-        new Machine { Id = "M-002", Name = "パッケージング機 B-5", Status = "メンテナンス中" },
-        new Machine { Id = "M-003", Name = "ラベル貼り機 C-2", Status = "停止中" }
-    };
+    [Inject]
+    private NavigationManager Nav { get; set; } = default!;
 
     protected override void OnInitialized()
     {
-        machine = AllMachines.FirstOrDefault(m => m.Id == MachineId);
+        // サンプルデータ
+        machine = new Machine
+        {
+            Id = MachineId ?? "1510006",
+            ProductionLine = "本社",
+            Model = "WTD-T16I",
+            BranchNo = "1",
+            TypeName = "トルネード160定寸",
+            LotNo = "",
+            LotSerial = "",
+            MachineNo = "",
+            ProjectNo = "15-214-T16",
+            UsedProjectNo = "",
+            TagNo = "",
+            OrderId = "",
+            DepositNo = "",
+            KahokuId = "",
+            PastId = "",
+            InternalMemo = "",
+            IsMasterOut = false,
+            ProductionType = "自社",
+            Location = "大高倉庫",
+            Status = "完成",
+            ManagementType = "新品",
+            ScheduledDate = DateTime.Today,
+            InProcessDate = null,
+            CompletionDate = new DateTime(2015, 9, 17),
+            CRDate = null,
+            IsDifficult = false,
+            IsNonStock = false,
+            MakerOption = "",
+            CustomerSpec = "",
+            SpecHistory = "",
+            ModifyDate = null,
+            AssemblyNote = "",
+            ModifyContent = ""
+        };
+    }
+
+    private void OnRegister()
+    {
+        // 登録処理（今後実装）
     }
 
     private void NavigateToPartsList()
@@ -62,7 +269,37 @@
     public class Machine
     {
         public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
+        public string ProductionLine { get; set; } = "";
+        public string Model { get; set; } = "";
+        public string BranchNo { get; set; } = "";
+        public string TypeName { get; set; } = "";
+        public string LotNo { get; set; } = "";
+        public string LotSerial { get; set; } = "";
+        public string MachineNo { get; set; } = "";
+        public string ProjectNo { get; set; } = "";
+        public string UsedProjectNo { get; set; } = "";
+        public string TagNo { get; set; } = "";
+        public string OrderId { get; set; } = "";
+        public string DepositNo { get; set; } = "";
+        public string KahokuId { get; set; } = "";
+        public string PastId { get; set; } = "";
+        public string InternalMemo { get; set; } = "";
+        public bool IsMasterOut { get; set; }
+        public string ProductionType { get; set; } = "";
+        public string Location { get; set; } = "";
         public string Status { get; set; } = "";
+        public string ManagementType { get; set; } = "";
+        public DateTime? ScheduledDate { get; set; }
+        public DateTime? InProcessDate { get; set; }
+        public DateTime? CompletionDate { get; set; }
+        public DateTime? CRDate { get; set; }
+        public bool IsDifficult { get; set; }
+        public bool IsNonStock { get; set; }
+        public string MakerOption { get; set; } = "";
+        public string CustomerSpec { get; set; } = "";
+        public string SpecHistory { get; set; } = "";
+        public DateTime? ModifyDate { get; set; }
+        public string AssemblyNote { get; set; } = "";
+        public string ModifyContent { get; set; } = "";
     }
 } 

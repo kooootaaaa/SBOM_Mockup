@@ -4,26 +4,72 @@
 
 <h1>機械管理台帳</h1>
 
-<p>管理対象の機械一覧です。詳細を表示する機械を選択してください。</p>
+<p>管理対象の機械一覧です。抽出条件を指定して「抽出実行」してください。</p>
 
-<table class="table">
+<div class="mb-3">
+    <label class="me-2"><input type="checkbox" @bind="filterCompleted" /> 完成</label>
+    <label class="me-2"><input type="checkbox" @bind="filterUnshipped" /> 未出荷</label>
+    <label class="me-2"><input type="checkbox" @bind="filterInStock" /> 保留</label>
+    <label class="me-2"><input type="checkbox" @bind="filterDemo" /> デモ機</label>
+    <select class="form-select d-inline w-auto me-2" @bind="selectedSeries">
+        <option value="">シリーズ選択</option>
+        <option value="A">Aシリーズ</option>
+        <option value="B">Bシリーズ</option>
+    </select>
+    <input class="form-control d-inline w-auto me-2" placeholder="型式" @bind="filterModel" />
+    <input class="form-control d-inline w-auto me-2" placeholder="製造番号" @bind="filterId" />
+    <button class="btn btn-primary me-2" @onclick="ApplyFilter">抽出実行</button>
+    <button class="btn btn-secondary" @onclick="ClearFilter">解除</button>
+</div>
+
+<table class="table table-bordered table-sm">
     <thead>
         <tr>
-            <th>機械番号</th>
-            <th>機械名</th>
-            <th>ステータス</th>
+            <th>製造番号</th>
+            <th>完成日</th>
+            <th>型式</th>
+            <th>機種名</th>
+            <th>現在地</th>
+            <th>機械状態</th>
+            <th>河北製造番号</th>
+            <th>過去製造番号</th>
+            <th>ロット番号</th>
+            <th>パレットNo.</th>
+            <th>預けNo.</th>
+            <th>仕様変更履歴</th>
+            <th>管理区分</th>
+            <th>状態</th>
+            <th>メーカーオプション</th>
+            <th>客先仕様</th>
+            <th>業務連絡等</th>
+            <th>製造備考</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var machine in machines)
+        @foreach (var machine in filteredMachines)
         {
             <tr>
                 <td>@machine.Id</td>
-                <td>@machine.Name</td>
+                <td>@machine.CompletionDate</td>
+                <td>@machine.Model</td>
+                <td>@machine.TypeName</td>
+                <td>@machine.Location</td>
                 <td>@machine.Status</td>
+                <td>@machine.KahokuId</td>
+                <td>@machine.PastId</td>
+                <td>@machine.LotNo</td>
+                <td>@machine.PalletNo</td>
+                <td>@machine.DepositNo</td>
+                <td>@machine.SpecHistory</td>
+                <td>@machine.ManagementType</td>
+                <td>@machine.State</td>
+                <td>@machine.MakerOption</td>
+                <td>@machine.CustomerSpec</td>
+                <td>@machine.BusinessNote</td>
+                <td>@machine.ManufactureNote</td>
                 <td>
-                    <a href="@($"/machine/{machine.Id}")" class="btn btn-primary">詳細表示</a>
+                    <a href="@($"/machine/{machine.Id}")" class="btn btn-primary btn-sm">詳細表示</a>
                 </td>
             </tr>
         }
@@ -31,23 +77,74 @@
 </table>
 
 @code {
-    private Machine[]? machines;
+    private List<Machine> machines = new();
+    private List<Machine> filteredMachines = new();
+
+    // 抽出条件
+    private bool filterCompleted;
+    private bool filterUnshipped;
+    private bool filterInStock;
+    private bool filterDemo;
+    private string selectedSeries = "";
+    private string filterModel = "";
+    private string filterId = "";
 
     protected override void OnInitialized()
     {
         // サンプルデータの作成
-        machines = new[]
+        machines = new List<Machine>
         {
-            new Machine { Id = "M-001", Name = "高速充填機 A-1", Status = "稼働中" },
-            new Machine { Id = "M-002", Name = "パッケージング機 B-5", Status = "メンテナンス中" },
-            new Machine { Id = "M-003", Name = "ラベル貼り機 C-2", Status = "停止中" }
+            new Machine { Id = "1510006", CompletionDate = "15-09-17", Model = "WTD-T16I", TypeName = "トルネードT16αR", Location = "本社", Status = "高荷重機", KahokuId = "", PastId = "22028829", LotNo = "", PalletNo = "", DepositNo = "", SpecHistory = "", ManagementType = "新品", State = "F-6", MakerOption = "クレーム返却後", CustomerSpec = "", BusinessNote = "", ManufactureNote = "" },
+            new Machine { Id = "1205009", CompletionDate = "19-02-18", Model = "NF-410AD", TypeName = "グレートパンチSS2", Location = "本社", Status = "中古", KahokuId = "", PastId = "", LotNo = "", PalletNo = "", DepositNo = "", SpecHistory = "", ManagementType = "中古", State = "", MakerOption = "", CustomerSpec = "", BusinessNote = "", ManufactureNote = "" },
+            new Machine { Id = "23030666", CompletionDate = "22-03-09", Model = "WM-PB-PS31ST-1", TypeName = "グレートパンチSS2", Location = "本社", Status = "新品", KahokuId = "", PastId = "231011084", LotNo = "", PalletNo = "", DepositNo = "", SpecHistory = "", ManagementType = "新品", State = "RE", MakerOption = "", CustomerSpec = "", BusinessNote = "", ManufactureNote = "" }
         };
+        filteredMachines = machines.ToList();
+    }
+
+    private void ApplyFilter()
+    {
+        filteredMachines = machines.Where(m =>
+            (!filterCompleted || m.Status.Contains("新品")) &&
+            (!filterUnshipped || m.Status.Contains("未出荷")) &&
+            (!filterInStock || m.Status.Contains("保留")) &&
+            (!filterDemo || m.Status.Contains("デモ")) &&
+            (string.IsNullOrEmpty(selectedSeries) || m.Model.StartsWith(selectedSeries)) &&
+            (string.IsNullOrEmpty(filterModel) || m.Model.Contains(filterModel)) &&
+            (string.IsNullOrEmpty(filterId) || m.Id.Contains(filterId))
+        ).ToList();
+    }
+
+    private void ClearFilter()
+    {
+        filterCompleted = false;
+        filterUnshipped = false;
+        filterInStock = false;
+        filterDemo = false;
+        selectedSeries = "";
+        filterModel = "";
+        filterId = "";
+        filteredMachines = machines.ToList();
     }
 
     public class Machine
     {
         public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
+        public string CompletionDate { get; set; } = "";
+        public string Model { get; set; } = "";
+        public string TypeName { get; set; } = "";
+        public string Location { get; set; } = "";
         public string Status { get; set; } = "";
+        public string KahokuId { get; set; } = "";
+        public string PastId { get; set; } = "";
+        public string LotNo { get; set; } = "";
+        public string PalletNo { get; set; } = "";
+        public string DepositNo { get; set; } = "";
+        public string SpecHistory { get; set; } = "";
+        public string ManagementType { get; set; } = "";
+        public string State { get; set; } = "";
+        public string MakerOption { get; set; } = "";
+        public string CustomerSpec { get; set; } = "";
+        public string BusinessNote { get; set; } = "";
+        public string ManufactureNote { get; set; } = "";
     }
 }
