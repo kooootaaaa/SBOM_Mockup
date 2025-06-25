@@ -1,32 +1,95 @@
 @page "/machine/{MachineId}/partsfetch"
 @using Microsoft.AspNetCore.Components
+@using System.Collections.Generic
 
 <PageTitle>部品情報取得</PageTitle>
 
-<h1>部品情報取得 <span class="text-muted fs-5">(@MachineId)</span></h1>
+<h1>部品情報取得</h1>
 
 <div class="mb-3">
-    <label>型式: <input class="form-control d-inline w-auto" value="A-100" /></label>
-    <label class="ms-3">日付: <input type="date" class="form-control d-inline w-auto" value="2025-06-22" /></label>
-    <button class="btn btn-primary ms-3">部品情報取得</button>
+    <label>型式: <input class="form-control d-inline" style="width: 200px;" value="WTD-T16I" /></label>
+    <label class="ms-3">日付: <input type="date" class="form-control d-inline w-auto" value="2024-09-17" /></label>
+    <button class="btn btn-primary ms-3" @onclick="FetchParts">部品情報取得</button>
+    <button class="btn btn-success ms-5" @onclick="RegisterParts" style="display: @(showResults ? "inline-block" : "none")">取得結果登録</button>
+    <a class="btn btn-secondary ms-2" href="/machine/@MachineId/parts" style="display: @(showResults ? "inline-block" : "none")">閉じる</a>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">取得結果</div>
-    <div class="card-body">
-        <ul>
-            <li>モーター x2</li>
-            <li>ベルト x1</li>
-            <li>センサー x3</li>
-        </ul>
+@if (showResults)
+{
+    <div class="mb-3">
+        <span class="me-3 fs-6">取得結果</span>
+        @if (fetchedParts.Count > 0)
+    {
+        <table class="table table-bordered table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>品番</th>
+                    <th>品名</th>
+                    <th>数量</th>
+                    <th>単位</th>
+                    <th>メーカー</th>
+                    <th>材質</th>
+                    <th>型式</th>
+                    <th>仕様</th>
+                    <th>備考</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var part in fetchedParts)
+                {
+                    <tr>
+                        <td>@part.PartNumber</td>
+                        <td>@part.PartName</td>
+                        <td class="text-end">@part.Quantity</td>
+                        <td>@part.Unit</td>
+                        <td>@part.Manufacturer</td>
+                        <td>@part.Material</td>
+                        <td>@part.Model</td>
+                        <td>@part.Specification</td>
+                        <td>@part.Remarks</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">取得結果がありません。</p>
+        }
     </div>
-</div>
-
-<div>
-    <button class="btn btn-success me-2">取得結果登録</button>
-    <a class="btn btn-secondary" href="/machine/@MachineId/parts">閉じる</a>
-</div>
+}
 
 @code {
     [Parameter] public string? MachineId { get; set; }
+    private bool showResults = false;
+    
+    public class Part
+    {
+        public string PartNumber { get; set; } = "";
+        public string PartName { get; set; } = "";
+        public int Quantity { get; set; }
+        public string Unit { get; set; } = "個";
+        public string Manufacturer { get; set; } = "";
+        public string Material { get; set; } = "";
+        public string Model { get; set; } = "";
+        public string Specification { get; set; } = "";
+        public string Remarks { get; set; } = "";
+    }
+    
+    private List<Part> fetchedParts = new List<Part>
+    {
+        new Part { PartNumber = "MS-12345", PartName = "サーボモーター", Quantity = 2, Unit = "個", Manufacturer = "三菱電機", Material = "アルミニウム合金", Model = "HG-KR43B", Specification = "400W", Remarks = "高精度位置決め用" },
+        new Part { PartNumber = "BT-5678", PartName = "タイミングベルト", Quantity = 1, Unit = "本", Manufacturer = "ゲイツ", Material = "ゴム（EPDM）", Model = "8M-1000-20", Specification = "歯数125", Remarks = "定期交換推奨" },
+        new Part { PartNumber = "PS-9012", PartName = "近接センサー", Quantity = 3, Unit = "個", Manufacturer = "オムロン", Material = "ステンレス（SUS304）", Model = "E2E-X5ME1", Specification = "検出距離5mm", Remarks = "" }
+    };
+    
+    private void FetchParts()
+    {
+        showResults = true;
+    }
+    
+    private void RegisterParts()
+    {
+        // 登録処理
+    }
 } 
