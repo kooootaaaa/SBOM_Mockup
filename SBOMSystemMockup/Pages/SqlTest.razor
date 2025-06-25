@@ -4,9 +4,11 @@
 
 <PageTitle>SQL接続テスト</PageTitle>
 
-<h1>T_部品マスタ接続テスト</h1>
+<h1>データベース接続テスト</h1>
 
-<button class="btn btn-primary" @onclick="ConnectToDatabase">データベースに接続</button>
+<button class="btn btn-primary me-2" @onclick="ConnectToDatabase">T_部品マスタ接続テスト</button>
+<button class="btn btn-success me-2" @onclick="CheckMachineTable">T_機械管理台帳テーブル確認</button>
+<button class="btn btn-info" @onclick="ListAllTables">全テーブル一覧</button>
 
 @if (!string.IsNullOrEmpty(message))
 {
@@ -105,6 +107,112 @@
                             message = $"接続成功！T_部品マスタから{dataTable.Rows.Count}件のデータを取得しました。";
                             isError = false;
                         }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"エラー: {ex.Message}";
+            isError = true;
+            dataTable = null;
+        }
+    }
+    
+    private async Task CheckMachineTable()
+    {
+        try
+        {
+            message = "T_機械管理台帳テーブルを確認中...";
+            isError = false;
+            StateHasChanged();
+
+            string connectionString = "Server=192.168.1.19;Database=WeBOMSQL;Integrated Security=true;TrustServerCertificate=true;";
+            
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+                
+                // テーブルの存在確認
+                string existQuery = @"
+                    SELECT COUNT(*) 
+                    FROM INFORMATION_SCHEMA.TABLES 
+                    WHERE TABLE_NAME = 'T_機械管理台帳'";
+                
+                using (SqlCommand existCommand = new SqlCommand(existQuery, connection))
+                {
+                    int tableExists = (int)await existCommand.ExecuteScalarAsync();
+                    
+                    if (tableExists == 0)
+                    {
+                        message = "T_機械管理台帳テーブルが見つかりません。";
+                        isError = true;
+                        dataTable = null;
+                        return;
+                    }
+                }
+                
+                // テーブル構造とサンプルデータを取得
+                string query = @"
+                    SELECT TOP 5 * FROM T_機械管理台帳;
+                    SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE 
+                    FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'T_機械管理台帳'
+                    ORDER BY ORDINAL_POSITION;";
+                
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    using (SqlDataAdapter adapter = new SqlDataAdapter(command))
+                    {
+                        DataSet dataSet = new DataSet();
+                        adapter.Fill(dataSet);
+                        
+                        if (dataSet.Tables.Count > 0)
+                        {
+                            dataTable = dataSet.Tables[0];
+                            message = $"接続成功！T_機械管理台帳から{dataTable.Rows.Count}件のデータを取得しました。";
+                            isError = false;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"エラー: {ex.Message}";
+            isError = true;
+            dataTable = null;
+        }
+    }
+    
+    private async Task ListAllTables()
+    {
+        try
+        {
+            message = "全テーブル一覧を取得中...";
+            isError = false;
+            StateHasChanged();
+
+            string connectionString = "Server=192.168.1.19;Database=WeBOMSQL;Integrated Security=true;TrustServerCertificate=true;";
+            
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+                
+                string query = @"
+                    SELECT TABLE_NAME as テーブル名, TABLE_TYPE as タイプ
+                    FROM INFORMATION_SCHEMA.TABLES 
+                    ORDER BY TABLE_NAME";
+                
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    using (SqlDataAdapter adapter = new SqlDataAdapter(command))
+                    {
+                        DataTable tables = new DataTable();
+                        adapter.Fill(tables);
+                        dataTable = tables;
+                        message = $"データベース内に{tables.Rows.Count}個のテーブルが見つかりました。";
+                        isError = false;
                     }
                 }
             }

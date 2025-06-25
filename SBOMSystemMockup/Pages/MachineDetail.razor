@@ -1,19 +1,30 @@
 @page "/machine/{MachineId}"
+@using System.Text.Json
+@inject HttpClient Http
 
 <PageTitle>機械詳細 - @MachineId</PageTitle>
 
 <h1>機械詳細</h1>
 
+@if (isLoading)
+{
+    <div class="text-center p-4">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">読み込み中...</span>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">
+        @errorMessage
+    </div>
+}
+else
+{
 <div class="border p-3 mb-3" style="background:#f8f9fa">
     <h5>＜個体情報＞</h5>
     <div class="row mb-2">
-        <div class="col-md-2">
-            <label>生産ライン</label>
-            <select class="form-select" @bind="machine.ProductionLine">
-                <option>本社</option>
-                <option>外注</option>
-            </select>
-        </div>
         <div class="col-md-2">
             <label>型式</label>
             <select class="form-select" @bind="machine.Model">
@@ -37,7 +48,7 @@
             <input class="form-control" @bind="machine.LotNo" />
         </div>
         <div class="col-md-2">
-            <label>ロット通番</label>
+            <label>ロット連番</label>
             <input class="form-control" @bind="machine.LotSerial" />
         </div>
         <div class="col-md-2">
@@ -53,8 +64,8 @@
             <input class="form-control" @bind="machine.UsedProjectNo" />
         </div>
         <div class="col-md-2">
-            <label>取付タグ番号</label>
-            <input class="form-control" @bind="machine.TagNo" />
+            <label>取付タンク番号</label>
+            <input class="form-control" @bind="machine.TankNo" />
         </div>
         <div class="col-md-2">
             <label>注文書識別番号</label>
@@ -203,6 +214,7 @@
         <a href="/" class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px">キャンセル</a>
     </div>
 </div>
+}
 
 @code {
     [Parameter]
@@ -215,45 +227,139 @@
     [Inject]
     private NavigationManager Nav { get; set; } = default!;
 
-    protected override void OnInitialized()
+    private string apiBaseUrl = "http://localhost:5196/api";
+    private bool isLoading = true;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
     {
-        // サンプルデータ
-        machine = new Machine
+        await LoadMachineData();
+    }
+    
+    private async Task LoadMachineData()
+    {
+        try
         {
-            Id = MachineId ?? "1510006",
-            ProductionLine = "本社",
-            Model = "WTD-T16I",
-            BranchNo = "1",
-            TypeName = "トルネード160定寸",
-            LotNo = "",
-            LotSerial = "",
-            MachineNo = "",
-            ProjectNo = "15-214-T16",
-            UsedProjectNo = "",
-            TagNo = "",
-            OrderId = "",
-            DepositNo = "",
-            KahokuId = "",
-            PastId = "",
-            InternalMemo = "",
-            IsMasterOut = false,
-            ProductionType = "自社",
-            Location = "大高倉庫",
-            Status = "完成",
-            ManagementType = "新品",
-            ScheduledDate = DateTime.Today,
-            InProcessDate = null,
-            CompletionDate = new DateTime(2015, 9, 17),
-            CRDate = null,
-            IsDifficult = false,
-            IsNonStock = false,
-            MakerOption = "",
-            CustomerSpec = "",
-            SpecHistory = "",
-            ModifyDate = null,
-            AssemblyNote = "",
-            ModifyContent = ""
-        };
+            isLoading = true;
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine/{MachineId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                if (data != null)
+                {
+                    machine = new Machine
+                    {
+                        Id = GetStringValue(data, "製造番号"),
+                        Model = GetStringValue(data, "型式"),
+                        BranchNo = GetStringValue(data, "ItemSubCode"),
+                        TypeName = GetStringValue(data, "機種名"),
+                        LotNo = GetStringValue(data, "ロット番号"),
+                        LotSerial = GetStringValue(data, "ロット連番"),
+                        MachineNo = GetStringValue(data, "号機番号"),
+                        ProjectNo = GetStringValue(data, "案件番号"),
+                        UsedProjectNo = GetStringValue(data, "中古番号"),
+                        TankNo = GetStringValue(data, "取付タンク番号"),
+                        OrderId = GetStringValue(data, "OrderSerialNo"),
+                        DepositNo = GetStringValue(data, "預けNo."),
+                        KahokuId = GetStringValue(data, "河北製造番号"),
+                        PastId = GetStringValue(data, "過去製造番号"),
+                        InternalMemo = GetStringValue(data, "備考1"),
+                        IsMasterOut = GetBoolValue(data, "マスタ外登録CH"),
+                        IsDifficult = GetBoolValue(data, "傷有FLG"),
+                        IsNonStock = GetBoolValue(data, "非在庫品FLG"),
+                        ProductionType = GetStringValue(data, "製造種別"),
+                        Location = GetStringValue(data, "現在地"),
+                        Status = GetStringValue(data, "機械状態"),
+                        ManagementType = GetStringValue(data, "管理区分"),
+                        ScheduledDate = GetDateValue(data, "完成予定日"),
+                        InProcessDate = GetDateValue(data, "仕掛品完成日"),
+                        CompletionDate = GetDateValue(data, "完成日"),
+                        CRDate = GetDateValue(data, "CR登録日"),
+                        MakerOption = GetStringValue(data, "メーカーオプション"),
+                        CustomerSpec = GetStringValue(data, "客先仕様"),
+                        SpecHistory = GetStringValue(data, "仕様変更履歴"),
+                        ModifyDate = GetDateValue(data, "改造日"),
+                        AssemblyNote = GetStringValue(data, "製造時備考"),
+                        ModifyContent = GetStringValue(data, "改造内容")
+                    };
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var errorData = JsonSerializer.Deserialize<Dictionary<string, object>>(errorContent);
+                    if (errorData != null && errorData.ContainsKey("error"))
+                    {
+                        errorMessage = $"APIエラー: {errorData["error"]}";
+                    }
+                    else
+                    {
+                        errorMessage = $"APIエラー: {response.StatusCode} - {errorContent}";
+                    }
+                }
+                catch
+                {
+                    errorMessage = $"APIエラー: {response.StatusCode} - {errorContent}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"データ取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    
+    private string GetStringValue(Dictionary<string, object> data, string key)
+    {
+        if (data.TryGetValue(key, out var value))
+        {
+            return value?.ToString() ?? "";
+        }
+        return "";
+    }
+    
+    private bool GetBoolValue(Dictionary<string, object> data, string key)
+    {
+        if (data.TryGetValue(key, out var value))
+        {
+            if (value is JsonElement element)
+            {
+                return element.GetBoolean();
+            }
+            if (bool.TryParse(value?.ToString(), out bool result))
+            {
+                return result;
+            }
+        }
+        return false;
+    }
+    
+    private DateTime? GetDateValue(Dictionary<string, object> data, string key)
+    {
+        if (data.TryGetValue(key, out var value) && value != null)
+        {
+            if (value is JsonElement element && element.ValueKind != JsonValueKind.Null)
+            {
+                return element.GetDateTime();
+            }
+            if (DateTime.TryParse(value.ToString(), out DateTime date))
+            {
+                return date;
+            }
+        }
+        return null;
     }
 
     private void OnRegister()
@@ -269,7 +375,6 @@
     public class Machine
     {
         public string Id { get; set; } = "";
-        public string ProductionLine { get; set; } = "";
         public string Model { get; set; } = "";
         public string BranchNo { get; set; } = "";
         public string TypeName { get; set; } = "";
@@ -278,7 +383,7 @@
         public string MachineNo { get; set; } = "";
         public string ProjectNo { get; set; } = "";
         public string UsedProjectNo { get; set; } = "";
-        public string TagNo { get; set; } = "";
+        public string TankNo { get; set; } = "";
         public string OrderId { get; set; } = "";
         public string DepositNo { get; set; } = "";
         public string KahokuId { get; set; } = "";

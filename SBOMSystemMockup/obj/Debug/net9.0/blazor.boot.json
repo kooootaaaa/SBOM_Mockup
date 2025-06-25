@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "SBOMSystemMockup",
   "resources": {
-    "hash": "sha256-/vj8GrikUFVlFFbLg40GKIPOO1iHzUjwrV46NFiTXqI=",
+    "hash": "sha256-RZQgDUgDtB6oY7t+ETa1gvc4eaxhjqTU6+G9szBVM4M=",
     "fingerprinting": {
       "Azure.Core.92q6rqqhly.wasm": "Azure.Core.wasm",
       "Azure.Identity.b6ekoqlu3w.wasm": "Azure.Identity.wasm",
@@ -237,8 +237,8 @@
       "icudt_CJK.tjcz0u77k5.dat": "icudt_CJK.dat",
       "icudt_EFIGS.tptq2av103.dat": "icudt_EFIGS.dat",
       "icudt_no_CJK.lfu7j35m59.dat": "icudt_no_CJK.dat",
-      "SBOMSystemMockup.cwvdwomxcs.wasm": "SBOMSystemMockup.wasm",
-      "SBOMSystemMockup.h2edu26vad.pdb": "SBOMSystemMockup.pdb"
+      "SBOMSystemMockup.mlq267eq9w.wasm": "SBOMSystemMockup.wasm",
+      "SBOMSystemMockup.3ibu9vu0r9.pdb": "SBOMSystemMockup.pdb"
     },
     "jsModuleNative": {
       "dotnet.native.rtblh4npr3.js": "sha256-HyBzcYNpT2l19+f1bpjNOa1oFoLe3K4JIQ6GsFK5m6I="
@@ -471,10 +471,10 @@
       "WindowsBase.u25hol0de4.wasm": "sha256-CgB28KCiYKHd4yK6IM0PJ526P7IbRCpNkGTqn+cLwxs=",
       "mscorlib.brg9pkj3je.wasm": "sha256-FzZwzxUYYyg3qxc7Km8r50UKAmRWrIeckSFG1NTHKNU=",
       "netstandard.wuzd3f1y6v.wasm": "sha256-yAXc0deBIRkWTVXqADZfhgZtrxGgJCIbZYVtA0NjvdM=",
-      "SBOMSystemMockup.cwvdwomxcs.wasm": "sha256-vAKbYLIxL6gIG4pf5xpO9TadjNJCE2pA6WW3lQHav9Y="
+      "SBOMSystemMockup.mlq267eq9w.wasm": "sha256-KpV0zOSwiGNLf08LDHHej0afULstRNys+WlCMCPfzRs="
     },
     "pdb": {
-      "SBOMSystemMockup.h2edu26vad.pdb": "sha256-hzF+YON112KypUZwzmBichDHk1saMeJIRQp8wNmTDEE="
+      "SBOMSystemMockup.3ibu9vu0r9.pdb": "sha256-RQX3hBrCxKjymyih2ntGeiK/64J93+d9joCyn6neIHY="
     },
     "satelliteResources": {
       "cs": {

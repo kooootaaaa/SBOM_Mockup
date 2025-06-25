@@ -1,10 +1,20 @@
 ﻿@page "/"
+@using System.Text.Json
+@inject HttpClient Http
 
 <PageTitle>機械管理台帳</PageTitle>
 
 <h1>機械管理台帳</h1>
 
 <p>管理対象の機械一覧です。抽出条件を指定して「抽出実行」してください。</p>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">
+        <strong>データベース接続エラー:</strong> @errorMessage
+        <br/>現在はサンプルデータを表示しています。
+    </div>
+}
 
 <div class="mb-3">
     <label class="me-2"><input type="checkbox" @bind="filterCompleted" /> 完成</label>
@@ -26,7 +36,6 @@
     <thead>
         <tr>
             <th>製造番号</th>
-            <th>完成日</th>
             <th>型式</th>
             <th>機種名</th>
             <th>現在地</th>
@@ -43,6 +52,7 @@
             <th>客先仕様</th>
             <th>業務連絡等</th>
             <th>製造備考</th>
+            <th>完成日</th>
             <th></th>
         </tr>
     </thead>
@@ -51,7 +61,6 @@
         {
             <tr>
                 <td>@machine.Id</td>
-                <td>@machine.CompletionDate</td>
                 <td>@machine.Model</td>
                 <td>@machine.TypeName</td>
                 <td>@machine.Location</td>
@@ -68,6 +77,7 @@
                 <td>@machine.CustomerSpec</td>
                 <td>@machine.BusinessNote</td>
                 <td>@machine.ManufactureNote</td>
+                <td>@FormatCompletionDate(machine.CompletionDate)</td>
                 <td>
                     <a href="@($"/machine/{machine.Id}")" class="btn btn-primary btn-sm">詳細表示</a>
                 </td>
@@ -76,9 +86,41 @@
     </tbody>
 </table>
 
+@if (totalRecords > 0)
+{
+    <nav aria-label="ページネーション">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="() => GoToPage(currentPage - 1)" disabled="@(currentPage == 1)">前へ</button>
+            </li>
+            
+            @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+            {
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <button class="page-link" @onclick="() => GoToPage(i)">@i</button>
+                </li>
+            }
+            
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <button class="page-link" @onclick="() => GoToPage(currentPage + 1)" disabled="@(currentPage == totalPages)">次へ</button>
+            </li>
+        </ul>
+    </nav>
+    
+    <div class="text-center mt-2">
+        @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, totalRecords)) / @totalRecords 件
+    </div>
+}
+
 @code {
     private List<Machine> machines = new();
     private List<Machine> filteredMachines = new();
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalRecords = 0;
+    private int totalPages = 0;
+    private string errorMessage = "";
+    private string apiBaseUrl = "http://localhost:5196/api";
 
     // 抽出条件
     private bool filterCompleted;
@@ -89,9 +131,90 @@
     private string filterModel = "";
     private string filterId = "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // サンプルデータの作成
+        await LoadMachinesFromDatabase();
+    }
+
+    private async Task LoadMachinesFromDatabase()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine?page={currentPage}&pageSize={pageSize}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<ApiResponse>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                if (result != null)
+                {
+                    machines.Clear();
+                    foreach (var machineData in result.Machines)
+                    {
+                        machines.Add(new Machine
+                        {
+                            Id = GetStringValue(machineData, "製造番号"),
+                            CompletionDate = GetStringValue(machineData, "完成日"),
+                            Model = GetStringValue(machineData, "型式"),
+                            TypeName = GetStringValue(machineData, "機種名"),
+                            Location = GetStringValue(machineData, "現在地"),
+                            Status = GetStringValue(machineData, "機械状態"),
+                            KahokuId = GetStringValue(machineData, "河北製造番号"),
+                            PastId = GetStringValue(machineData, "過去製造番号"),
+                            LotNo = GetStringValue(machineData, "ロット番号"),
+                            PalletNo = GetStringValue(machineData, "パレットNo."),
+                            DepositNo = GetStringValue(machineData, "預けNo."),
+                            SpecHistory = GetStringValue(machineData, "仕様変更履歴"),
+                            ManagementType = GetStringValue(machineData, "管理区分"),
+                            State = GetStringValue(machineData, "状態"),
+                            MakerOption = GetStringValue(machineData, "メーカーオプション"),
+                            CustomerSpec = GetStringValue(machineData, "客先仕様"),
+                            BusinessNote = GetStringValue(machineData, "業務連絡等"),
+                            ManufactureNote = GetStringValue(machineData, "製造備考")
+                        });
+                    }
+                    
+                    totalRecords = result.TotalRecords;
+                    totalPages = result.TotalPages;
+                    errorMessage = ""; // 成功時はエラーメッセージをクリア
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorResult = JsonSerializer.Deserialize<ErrorResponse>(errorContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                errorMessage = errorResult?.Error ?? "API呼び出しに失敗しました。";
+                LoadSampleData();
+            }
+            
+            filteredMachines = machines.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"API接続エラー: {ex.Message}";
+            Console.WriteLine($"API接続エラー: {ex.Message}");
+            LoadSampleData();
+        }
+    }
+    
+    private string GetStringValue(Dictionary<string, object> data, string key)
+    {
+        if (data.TryGetValue(key, out var value))
+        {
+            return value?.ToString() ?? "";
+        }
+        return "";
+    }
+    
+    private void LoadSampleData()
+    {
         machines = new List<Machine>
         {
             new Machine { Id = "1510006", CompletionDate = "15-09-17", Model = "WTD-T16I", TypeName = "トルネードT16αR", Location = "本社", Status = "高荷重機", KahokuId = "", PastId = "22028829", LotNo = "", PalletNo = "", DepositNo = "", SpecHistory = "", ManagementType = "新品", State = "F-6", MakerOption = "クレーム返却後", CustomerSpec = "", BusinessNote = "", ManufactureNote = "" },
@@ -99,10 +222,24 @@
             new Machine { Id = "23030666", CompletionDate = "22-03-09", Model = "WM-PB-PS31ST-1", TypeName = "グレートパンチSS2", Location = "本社", Status = "新品", KahokuId = "", PastId = "231011084", LotNo = "", PalletNo = "", DepositNo = "", SpecHistory = "", ManagementType = "新品", State = "RE", MakerOption = "", CustomerSpec = "", BusinessNote = "", ManufactureNote = "" }
         };
         filteredMachines = machines.ToList();
+        totalRecords = machines.Count;
+        totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
     }
 
-    private void ApplyFilter()
+    private async Task GoToPage(int page)
     {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            await LoadMachinesFromDatabase();
+        }
+    }
+
+    private async Task ApplyFilter()
+    {
+        currentPage = 1; // フィルタ適用時は1ページ目に戻る
+        await LoadMachinesFromDatabase();
+        
         filteredMachines = machines.Where(m =>
             (!filterCompleted || m.Status.Contains("新品")) &&
             (!filterUnshipped || m.Status.Contains("未出荷")) &&
@@ -114,7 +251,7 @@
         ).ToList();
     }
 
-    private void ClearFilter()
+    private async Task ClearFilter()
     {
         filterCompleted = false;
         filterUnshipped = false;
@@ -123,7 +260,8 @@
         selectedSeries = "";
         filterModel = "";
         filterId = "";
-        filteredMachines = machines.ToList();
+        currentPage = 1;
+        await LoadMachinesFromDatabase();
     }
 
     public class Machine
@@ -146,5 +284,33 @@
         public string CustomerSpec { get; set; } = "";
         public string BusinessNote { get; set; } = "";
         public string ManufactureNote { get; set; } = "";
+    }
+    
+    public class ApiResponse
+    {
+        public List<Dictionary<string, object>> Machines { get; set; } = new();
+        public int TotalRecords { get; set; }
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages { get; set; }
+    }
+    
+    public class ErrorResponse
+    {
+        public string Error { get; set; } = "";
+    }
+    
+    private string FormatCompletionDate(string dateString)
+    {
+        if (string.IsNullOrEmpty(dateString))
+            return "";
+            
+        // データベースから取得した日付文字列をパースして yyyy/M/d 形式にフォーマット
+        if (DateTime.TryParse(dateString, out DateTime date))
+        {
+            return date.ToString("yyyy/M/d");
+        }
+        
+        return dateString; // パースできない場合は元の値を返す
     }
 }

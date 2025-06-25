@@ -1,0 +1,207 @@
+@page "/apitest"
+@using System.Text.Json
+@inject HttpClient Http
+
+<PageTitle>API接続テスト</PageTitle>
+
+<h1>Web API接続テスト</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary me-2" @onclick="TestConnection">接続テスト</button>
+    <button class="btn btn-success me-2" @onclick="GetAllTables">全テーブル一覧</button>
+    <button class="btn btn-info me-2" @onclick="CheckMachineTable">機械管理台帳確認</button>
+    <button class="btn btn-warning me-2" @onclick="GetMachines">機械データ取得</button>
+</div>
+
+<div class="mb-3">
+    <label>製造番号: <input class="form-control d-inline w-auto" @bind="testMachineId" /></label>
+    <button class="btn btn-danger ms-2" @onclick="GetMachineDetail">機械詳細取得</button>
+</div>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-success") mt-3">
+        @message
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(jsonResult))
+{
+    <div class="mt-3">
+        <h4>APIレスポンス:</h4>
+        <pre class="bg-light p-3" style="max-height: 400px; overflow-y: auto;">@jsonResult</pre>
+    </div>
+}
+
+@code {
+    private string message = "";
+    private bool isError = false;
+    private string jsonResult = "";
+    private string apiBaseUrl = "http://localhost:5196/api";
+    private string testMachineId = "1510006";
+
+    private async Task TestConnection()
+    {
+        try
+        {
+            message = "接続テスト中...";
+            isError = false;
+            jsonResult = "";
+            StateHasChanged();
+
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine/test");
+            var content = await response.Content.ReadAsStringAsync();
+            
+            if (response.IsSuccessStatusCode)
+            {
+                message = "API接続成功！";
+                isError = false;
+                jsonResult = content;
+            }
+            else
+            {
+                message = $"APIエラー: {response.StatusCode}";
+                isError = true;
+                jsonResult = content;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"接続エラー: {ex.Message}";
+            isError = true;
+            jsonResult = "";
+        }
+    }
+
+    private async Task GetAllTables()
+    {
+        try
+        {
+            message = "全テーブル一覧取得中...";
+            isError = false;
+            jsonResult = "";
+            StateHasChanged();
+
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine/tables");
+            var content = await response.Content.ReadAsStringAsync();
+            
+            if (response.IsSuccessStatusCode)
+            {
+                message = "テーブル一覧取得成功！";
+                isError = false;
+                jsonResult = content;
+            }
+            else
+            {
+                message = $"APIエラー: {response.StatusCode}";
+                isError = true;
+                jsonResult = content;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"接続エラー: {ex.Message}";
+            isError = true;
+            jsonResult = "";
+        }
+    }
+
+    private async Task CheckMachineTable()
+    {
+        try
+        {
+            message = "機械管理台帳テーブル確認中...";
+            isError = false;
+            jsonResult = "";
+            StateHasChanged();
+
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine/check-machine-table");
+            var content = await response.Content.ReadAsStringAsync();
+            
+            if (response.IsSuccessStatusCode)
+            {
+                message = "テーブル確認完了！";
+                isError = false;
+                jsonResult = content;
+            }
+            else
+            {
+                message = $"APIエラー: {response.StatusCode}";
+                isError = true;
+                jsonResult = content;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"接続エラー: {ex.Message}";
+            isError = true;
+            jsonResult = "";
+        }
+    }
+
+    private async Task GetMachines()
+    {
+        try
+        {
+            message = "機械データ取得中...";
+            isError = false;
+            jsonResult = "";
+            StateHasChanged();
+
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine?page=1&pageSize=5");
+            var content = await response.Content.ReadAsStringAsync();
+            
+            if (response.IsSuccessStatusCode)
+            {
+                message = "機械データ取得成功！";
+                isError = false;
+                jsonResult = content;
+            }
+            else
+            {
+                message = $"APIエラー: {response.StatusCode}";
+                isError = true;
+                jsonResult = content;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"接続エラー: {ex.Message}";
+            isError = true;
+            jsonResult = "";
+        }
+    }
+    
+    private async Task GetMachineDetail()
+    {
+        try
+        {
+            message = $"製造番号 {testMachineId} の詳細取得中...";
+            isError = false;
+            jsonResult = "";
+            StateHasChanged();
+
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine/{testMachineId}");
+            var content = await response.Content.ReadAsStringAsync();
+            
+            if (response.IsSuccessStatusCode)
+            {
+                message = "機械詳細取得成功！";
+                isError = false;
+                jsonResult = content;
+            }
+            else
+            {
+                message = $"APIエラー: {response.StatusCode}";
+                isError = true;
+                jsonResult = content;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"接続エラー: {ex.Message}";
+            isError = true;
+            jsonResult = "";
+        }
+    }
+}
