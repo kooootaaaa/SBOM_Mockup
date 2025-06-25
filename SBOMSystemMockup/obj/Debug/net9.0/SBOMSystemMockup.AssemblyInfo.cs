@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SBOMSystemMockup")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d4b3c24e73373d4221772bca74840dae714b459b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dfcc5d0bb46483c84218289bff3c2a2f094df6e9")]
 [assembly: System.Reflection.AssemblyProductAttribute("SBOMSystemMockup")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SBOMSystemMockup")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
