@@ -4,20 +4,19 @@
 
 <PageTitle>部品情報取得</PageTitle>
 
-<h1>部品情報取得</h1>
+<h3>部品情報取得</h3>
 
 <div class="mb-3">
-    <label>型式: <input class="form-control d-inline" style="width: 200px;" value="WTD-T16I" /></label>
+    <label>型式: <input class="form-control d-inline" style="width: 280px;" value="WTD-T16I" /></label>
     <label class="ms-3">日付: <input type="date" class="form-control d-inline w-auto" value="2024-09-17" /></label>
     <button class="btn btn-primary ms-3" @onclick="FetchParts">部品情報取得</button>
-    <button class="btn btn-success ms-5" @onclick="RegisterParts" style="display: @(showResults ? "inline-block" : "none")">取得結果登録</button>
-    <a class="btn btn-secondary ms-2" href="/machine/@MachineId/parts" style="display: @(showResults ? "inline-block" : "none")">閉じる</a>
+    <button class="btn btn-primary ms-3" @onclick="RegisterParts">取得結果登録</button>
+    <a class="btn btn-primary ms-3" href="/machine/@MachineId/parts">閉じる</a>
 </div>
 
 @if (showResults)
 {
     <div class="mb-3">
-        <span class="me-3 fs-6">取得結果</span>
         @if (fetchedParts.Count > 0)
     {
         <table class="table table-bordered table-hover">
