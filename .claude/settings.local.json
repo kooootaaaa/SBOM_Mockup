@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet run)",
+      "Bash(cmd.exe /c \"dotnet run\")",
+      "Bash(cmd.exe /c start http://localhost:5255)",
+      "Bash(cmd.exe:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(dotnet build)",
+      "Bash(ls:*)"
+    ],
+    "deny": []
+  }
+}
