@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Text.Json;
 
 namespace SBOMSystemAPI.Controllers
 {
@@ -201,40 +202,9 @@ namespace SBOMSystemAPI.Controllers
                 {
                     await connection.OpenAsync();
                     
+                    // まず、全カラムを取得するクエリを実行
                     string query = @"
-                        SELECT 
-                            製造番号,
-                            ItemSubCode,
-                            型式,
-                            機種名,
-                            ロット番号,
-                            ロット連番,
-                            号機番号,
-                            案件番号,
-                            中古番号,
-                            取付タンク番号,
-                            OrderSerialNo,
-                            [預けNo.],
-                            河北製造番号,
-                            過去製造番号,
-                            備考1,
-                            マスタ外登録CH,
-                            傷有FLG,
-                            非在庫品FLG,
-                            製造種別,
-                            現在地,
-                            機械状態,
-                            管理区分,
-                            完成予定日,
-                            仕掛品完成日,
-                            完成日,
-                            CR登録日,
-                            メーカーオプション,
-                            客先仕様,
-                            仕様変更履歴,
-                            改造日,
-                            製造時備考,
-                            改造内容
+                        SELECT * 
                         FROM T_機械管理台帳 
                         WHERE 製造番号 = @MachineId";
                     
@@ -261,6 +231,151 @@ namespace SBOMSystemAPI.Controllers
                             {
                                 return NotFound(new { error = $"製造番号 {id} の機械が見つかりません。" });
                             }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+        
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateMachine(string id, [FromBody] Dictionary<string, object> machineData)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    // 更新用のSQLを構築
+                    var updateFields = new List<string>();
+                    var parameters = new List<SqlParameter>();
+                    
+                    // 製造番号は変更不可
+                    parameters.Add(new SqlParameter("@MachineId", id));
+                    
+                    // 更新可能なフィールドのマッピング
+                    var fieldMappings = new Dictionary<string, string>
+                    {
+                        { "型式", "@Model" },
+                        { "ItemSubCode", "@BranchNo" },
+                        { "機種名", "@TypeName" },
+                        { "ロット番号", "@LotNo" },
+                        { "ロット連番", "@LotSerial" },
+                        { "号機番号", "@MachineNo" },
+                        { "案件番号", "@ProjectNo" },
+                        { "中古番号", "@UsedProjectNo" },
+                        { "タンク製造番号", "@TankNo" },
+                        { "OrderSerialNo", "@OrderId" },
+                        { "預けNo", "@DepositNo" },
+                        { "河北製造番号", "@KahokuId" },
+                        { "過去製造番号", "@PastId" },
+                        { "備考1", "@InternalMemo" },
+                        { "マスタ外登録CH", "@IsMasterOut" },
+                        { "傷有FLG", "@IsDifficult" },
+                        { "非在庫品FLG", "@IsNonStock" },
+                        { "製造種別", "@ProductionType" },
+                        { "現所在地", "@Location" },
+                        { "機械状態", "@Status" },
+                        { "管理区分", "@ManagementType" },
+                        { "完成予定日", "@ScheduledDate" },
+                        { "仕掛品完成日", "@InProcessDate" },
+                        { "完成日", "@CompletionDate" },
+                        { "CR登録日", "@CRDate" },
+                        { "メーカーオプション", "@MakerOption" },
+                        { "客先仕様", "@CustomerSpec" },
+                        { "仕様変更履歴", "@SpecHistory" },
+                        { "改造日", "@ModifyDate" },
+                        { "製造時備考", "@AssemblyNote" },
+                        { "改造内容", "@ModifyContent" }
+                    };
+                    
+                    foreach (var field in fieldMappings)
+                    {
+                        if (machineData.ContainsKey(field.Key))
+                        {
+                            updateFields.Add($"{field.Key} = {field.Value}");
+                            var value = machineData[field.Key];
+                            
+                            // JsonElementの場合は適切な型に変換
+                            if (value is JsonElement element)
+                            {
+                                switch (element.ValueKind)
+                                {
+                                    case JsonValueKind.String:
+                                        var stringValue = element.GetString();
+                                        if (string.IsNullOrEmpty(stringValue))
+                                        {
+                                            parameters.Add(new SqlParameter(field.Value, DBNull.Value));
+                                        }
+                                        else
+                                        {
+                                            parameters.Add(new SqlParameter(field.Value, stringValue));
+                                        }
+                                        break;
+                                    case JsonValueKind.Number:
+                                        if (element.TryGetInt32(out int intValue))
+                                        {
+                                            parameters.Add(new SqlParameter(field.Value, intValue));
+                                        }
+                                        else if (element.TryGetDecimal(out decimal decimalValue))
+                                        {
+                                            parameters.Add(new SqlParameter(field.Value, decimalValue));
+                                        }
+                                        else
+                                        {
+                                            parameters.Add(new SqlParameter(field.Value, element.GetDouble()));
+                                        }
+                                        break;
+                                    case JsonValueKind.True:
+                                    case JsonValueKind.False:
+                                        parameters.Add(new SqlParameter(field.Value, element.GetBoolean() ? 1 : 0));
+                                        break;
+                                    case JsonValueKind.Null:
+                                        parameters.Add(new SqlParameter(field.Value, DBNull.Value));
+                                        break;
+                                    default:
+                                        parameters.Add(new SqlParameter(field.Value, DBNull.Value));
+                                        break;
+                                }
+                            }
+                            else if (value == null || (value is string str && string.IsNullOrEmpty(str)))
+                            {
+                                parameters.Add(new SqlParameter(field.Value, DBNull.Value));
+                            }
+                            else
+                            {
+                                parameters.Add(new SqlParameter(field.Value, value));
+                            }
+                        }
+                    }
+                    
+                    if (updateFields.Count == 0)
+                    {
+                        return BadRequest(new { error = "更新するフィールドがありません。" });
+                    }
+                    
+                    string updateQuery = $@"
+                        UPDATE T_機械管理台帳 
+                        SET {string.Join(", ", updateFields)}
+                        WHERE 製造番号 = @MachineId";
+                    
+                    using (SqlCommand command = new SqlCommand(updateQuery, connection))
+                    {
+                        command.Parameters.AddRange(parameters.ToArray());
+                        
+                        int rowsAffected = await command.ExecuteNonQueryAsync();
+                        
+                        if (rowsAffected > 0)
+                        {
+                            return Ok(new { message = "更新に成功しました。", rowsAffected = rowsAffected });
+                        }
+                        else
+                        {
+                            return NotFound(new { error = $"製造番号 {id} の機械が見つかりません。" });
                         }
                     }
                 }

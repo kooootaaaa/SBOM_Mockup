@@ -6,8 +6,6 @@
 
 <h1>機械管理台帳</h1>
 
-<p>管理対象の機械一覧です。抽出条件を指定して「抽出実行」してください。</p>
-
 @if (!string.IsNullOrEmpty(errorMessage))
 {
     <div class="alert alert-danger">
@@ -50,8 +48,8 @@
             <th>状態</th>
             <th>メーカーオプション</th>
             <th>客先仕様</th>
-            <th>業務連絡等</th>
-            <th>製造備考</th>
+            <th>業務連絡書</th>
+            <th>製造時備考</th>
             <th>完成日</th>
             <th></th>
         </tr>
@@ -161,20 +159,20 @@
                             CompletionDate = GetStringValue(machineData, "完成日"),
                             Model = GetStringValue(machineData, "型式"),
                             TypeName = GetStringValue(machineData, "機種名"),
-                            Location = GetStringValue(machineData, "現在地"),
+                            Location = GetStringValue(machineData, "現所在地"),
                             Status = GetStringValue(machineData, "機械状態"),
                             KahokuId = GetStringValue(machineData, "河北製造番号"),
                             PastId = GetStringValue(machineData, "過去製造番号"),
                             LotNo = GetStringValue(machineData, "ロット番号"),
-                            PalletNo = GetStringValue(machineData, "パレットNo."),
-                            DepositNo = GetStringValue(machineData, "預けNo."),
+                            PalletNo = GetStringValue(machineData, "パレットNo"),
+                            DepositNo = GetStringValue(machineData, "預けNo"),
                             SpecHistory = GetStringValue(machineData, "仕様変更履歴"),
                             ManagementType = GetStringValue(machineData, "管理区分"),
-                            State = GetStringValue(machineData, "状態"),
+                            State = GetStringValue(machineData, "機械状態"),
                             MakerOption = GetStringValue(machineData, "メーカーオプション"),
                             CustomerSpec = GetStringValue(machineData, "客先仕様"),
-                            BusinessNote = GetStringValue(machineData, "業務連絡等"),
-                            ManufactureNote = GetStringValue(machineData, "製造備考")
+                            BusinessNote = GetStringValue(machineData, "業務連絡書"),
+                            ManufactureNote = GetStringValue(machineData, "製造時備考")
                         });
                     }
                     

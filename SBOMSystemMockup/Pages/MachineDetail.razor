@@ -1,5 +1,7 @@
 @page "/machine/{MachineId}"
 @using System.Text.Json
+@using System.Net.Http
+@using System.Text
 @inject HttpClient Http
 
 <PageTitle>機械詳細 - @MachineId</PageTitle>
@@ -26,18 +28,12 @@ else
     <h5>＜個体情報＞</h5>
     <div class="row mb-2">
         <div class="col-md-2">
-            <label>型式</label>
-            <select class="form-select" @bind="machine.Model">
-                <option>WTD-T16I</option>
-                <option>NF-410AD</option>
-            </select>
+            <label>型式 <span class="text-danger">*</span></label>
+            <input class="form-control @(string.IsNullOrWhiteSpace(machine.Model) && !string.IsNullOrEmpty(errorMessage) ? "is-invalid" : "")" @bind="machine.Model" required />
         </div>
         <div class="col-md-2">
             <label>枝番</label>
-            <select class="form-select" @bind="machine.BranchNo">
-                <option>1</option>
-                <option>2</option>
-            </select>
+            <input class="form-control" @bind="machine.BranchNo" />
         </div>
         <div class="col-md-3">
             <label>機種名</label>
@@ -135,25 +131,13 @@ else
                 <div class="row">
                     <div class="col-md-6">
                         <label>製造種別</label>
-                        <select class="form-select mb-1" @bind="machine.ProductionType">
-                            <option>自社</option>
-                            <option>外注</option>
-                        </select>
+                        <input class="form-control mb-1" @bind="machine.ProductionType" />
                         <label>現在地</label>
-                        <select class="form-select mb-1" @bind="machine.Location">
-                            <option>本社倉庫</option>
-                            <option>大高倉庫</option>
-                        </select>
+                        <input class="form-control mb-1" @bind="machine.Location" />
                         <label>機械状態</label>
-                        <select class="form-select mb-1" @bind="machine.Status">
-                            <option>完成</option>
-                            <option>未完成</option>
-                        </select>
+                        <input class="form-control mb-1" @bind="machine.Status" />
                         <label>管理区分</label>
-                        <select class="form-select mb-1" @bind="machine.ManagementType">
-                            <option>新品</option>
-                            <option>中古</option>
-                        </select>
+                        <input class="form-control mb-1" @bind="machine.ManagementType" />
                     </div>
                     <div class="col-md-6">
                         <label>完成予定日</label>
@@ -210,7 +194,7 @@ else
 <div class="mt-4 text-end mb-4">
     <div class="d-flex justify-content-end gap-2">
         <button class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px" @onclick="NavigateToPartsList">部品一覧画面を開く</button>
-        <button class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px" @onclick="OnRegister">登録</button>
+        <button class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px" @onclick="OnRegister" disabled="@isLoading">@(isLoading ? "登録中..." : "登録")</button>
         <a href="/" class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px">キャンセル</a>
     </div>
 </div>
@@ -264,9 +248,9 @@ else
                         MachineNo = GetStringValue(data, "号機番号"),
                         ProjectNo = GetStringValue(data, "案件番号"),
                         UsedProjectNo = GetStringValue(data, "中古番号"),
-                        TankNo = GetStringValue(data, "取付タンク番号"),
+                        TankNo = GetStringValue(data, "タンク製造番号") ?? GetStringValue(data, "取付タンク番号"),
                         OrderId = GetStringValue(data, "OrderSerialNo"),
-                        DepositNo = GetStringValue(data, "預けNo."),
+                        DepositNo = GetStringValue(data, "預けNo") ?? GetStringValue(data, "預けNo."),
                         KahokuId = GetStringValue(data, "河北製造番号"),
                         PastId = GetStringValue(data, "過去製造番号"),
                         InternalMemo = GetStringValue(data, "備考1"),
@@ -274,7 +258,7 @@ else
                         IsDifficult = GetBoolValue(data, "傷有FLG"),
                         IsNonStock = GetBoolValue(data, "非在庫品FLG"),
                         ProductionType = GetStringValue(data, "製造種別"),
-                        Location = GetStringValue(data, "現在地"),
+                        Location = GetStringValue(data, "現所在地") ?? GetStringValue(data, "現在地"),
                         Status = GetStringValue(data, "機械状態"),
                         ManagementType = GetStringValue(data, "管理区分"),
                         ScheduledDate = GetDateValue(data, "完成予定日"),
@@ -336,8 +320,18 @@ else
         {
             if (value is JsonElement element)
             {
-                return element.GetBoolean();
+                // smallint型の値を処理
+                if (element.ValueKind == JsonValueKind.Number)
+                {
+                    return element.GetInt32() != 0;
+                }
             }
+            // 数値文字列の場合
+            if (int.TryParse(value?.ToString(), out int intValue))
+            {
+                return intValue != 0;
+            }
+            // bool文字列の場合（念のため）
             if (bool.TryParse(value?.ToString(), out bool result))
             {
                 return result;
@@ -362,9 +356,95 @@ else
         return null;
     }
 
-    private void OnRegister()
+    private async Task OnRegister()
     {
-        // 登録処理（今後実装）
+        // 型式の必須チェック
+        if (string.IsNullOrWhiteSpace(machine.Model))
+        {
+            errorMessage = "型式は必須項目です。入力してください。";
+            return;
+        }
+        
+        try
+        {
+            isLoading = true;
+            errorMessage = "";
+            
+            // 送信用のデータを準備
+            var updateData = new Dictionary<string, object>
+            {
+                { "型式", machine.Model },
+                { "ItemSubCode", machine.BranchNo },
+                { "機種名", machine.TypeName },
+                { "ロット番号", machine.LotNo },
+                { "ロット連番", machine.LotSerial },
+                { "号機番号", machine.MachineNo },
+                { "案件番号", machine.ProjectNo },
+                { "中古番号", machine.UsedProjectNo },
+                { "タンク製造番号", machine.TankNo },
+                { "OrderSerialNo", machine.OrderId },
+                { "預けNo", machine.DepositNo },
+                { "河北製造番号", machine.KahokuId },
+                { "過去製造番号", machine.PastId },
+                { "備考1", machine.InternalMemo },
+                { "マスタ外登録CH", machine.IsMasterOut ? 1 : 0 },
+                { "傷有FLG", machine.IsDifficult ? 1 : 0 },
+                { "非在庫品FLG", machine.IsNonStock ? 1 : 0 },
+                { "製造種別", machine.ProductionType },
+                { "現所在地", machine.Location },
+                { "機械状態", machine.Status },
+                { "管理区分", machine.ManagementType },
+                { "完成予定日", machine.ScheduledDate?.ToString("yyyy-MM-dd") },
+                { "仕掛品完成日", machine.InProcessDate?.ToString("yyyy-MM-dd") },
+                { "完成日", machine.CompletionDate?.ToString("yyyy-MM-dd") },
+                { "CR登録日", machine.CRDate?.ToString("yyyy-MM-dd") },
+                { "メーカーオプション", machine.MakerOption },
+                { "客先仕様", machine.CustomerSpec },
+                { "仕様変更履歴", machine.SpecHistory },
+                { "改造日", machine.ModifyDate?.ToString("yyyy-MM-dd") },
+                { "製造時備考", machine.AssemblyNote },
+                { "改造内容", machine.ModifyContent }
+            };
+            
+            var jsonContent = JsonSerializer.Serialize(updateData);
+            var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+            
+            var response = await Http.PutAsync($"{apiBaseUrl}/Machine/{MachineId}", content);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // 登録成功後、画面を閉じる（ホーム画面に遷移）
+                Nav.NavigateTo("/");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var errorData = JsonSerializer.Deserialize<Dictionary<string, object>>(errorContent);
+                    if (errorData != null && errorData.ContainsKey("error"))
+                    {
+                        errorMessage = $"登録エラー: {errorData["error"]}";
+                    }
+                    else
+                    {
+                        errorMessage = $"登録エラー: {response.StatusCode}";
+                    }
+                }
+                catch
+                {
+                    errorMessage = $"登録エラー: {response.StatusCode} - {errorContent}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"登録エラー: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private void NavigateToPartsList()
