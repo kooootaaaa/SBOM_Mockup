@@ -78,8 +78,9 @@
             
             @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
             {
-                <li class="page-item @(i == currentPage ? "active" : "")">
-                    <button class="page-link" @onclick="() => GoToPage(i)">@i</button>
+                int pageNumber = i; // ローカル変数にコピーして変数キャプチャの問題を回避
+                <li class="page-item @(pageNumber == currentPage ? "active" : "")">
+                    <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
                 </li>
             }
             
