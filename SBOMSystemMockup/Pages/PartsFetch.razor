@@ -187,6 +187,7 @@
                 <thead class="table-light">
                     <tr>
                         <th style="width: 30px;"></th>
+                        <th style="width: 50px;">階層</th>
                         <th>品番</th>
                         <th>品名</th>
                         <th>数量</th>
@@ -837,59 +838,65 @@
         
         builder.CloseElement(); // td
         
-        // 品番
+        // 階層番号
         builder.OpenElement(11, "td");
-        builder.AddAttribute(12, "style", part.Level > 0 ? $"padding-left: {part.Level * 10}px;" : "");
-        builder.AddContent(13, part.PartNumber);
+        builder.AddAttribute(12, "class", "text-center");
+        builder.AddContent(13, (part.Level + 1).ToString());
+        builder.CloseElement();
+        
+        // 品番
+        builder.OpenElement(14, "td");
+        builder.AddAttribute(15, "style", part.Level > 0 ? $"padding-left: {part.Level * 10}px;" : "");
+        builder.AddContent(16, part.PartNumber);
         builder.CloseElement();
         
         // 品名
-        builder.OpenElement(14, "td");
-        builder.AddContent(15, part.PartName);
+        builder.OpenElement(17, "td");
+        builder.AddContent(18, part.PartName);
         builder.CloseElement();
         
         // 数量
-        builder.OpenElement(16, "td");
-        builder.AddAttribute(17, "class", "text-end");
-        builder.AddContent(18, part.Quantity);
+        builder.OpenElement(19, "td");
+        builder.AddAttribute(20, "class", "text-end");
+        builder.AddContent(21, part.Quantity);
         builder.CloseElement();
         
         // メーカー
-        builder.OpenElement(19, "td");
-        builder.AddContent(20, part.Manufacturer);
+        builder.OpenElement(22, "td");
+        builder.AddContent(23, part.Manufacturer);
         builder.CloseElement();
         
         // 材質
-        builder.OpenElement(21, "td");
-        builder.AddContent(22, part.Material);
+        builder.OpenElement(24, "td");
+        builder.AddContent(25, part.Material);
         builder.CloseElement();
         
         // 型式
-        builder.OpenElement(23, "td");
-        builder.AddContent(24, part.Model);
+        builder.OpenElement(26, "td");
+        builder.AddContent(27, part.Model);
         builder.CloseElement();
         
         // 備考
-        builder.OpenElement(25, "td");
-        builder.AddContent(26, part.Remarks);
+        builder.OpenElement(28, "td");
+        builder.AddContent(29, part.Remarks);
         builder.CloseElement();
         
         // 種別
-        builder.OpenElement(27, "td");
+        builder.OpenElement(30, "td");
         if (part.IsUnit)
         {
             if (part.IsOptionUnit)
             {
-                builder.OpenElement(28, "span");
-                builder.AddAttribute(29, "class", "badge bg-warning text-dark");
-                builder.AddContent(30, "オプション");
+                builder.OpenElement(31, "span");
+                builder.AddAttribute(32, "class", "badge bg-warning text-dark");
+                builder.AddContent(33, "オプション");
                 builder.CloseElement();
             }
             else
             {
-                builder.OpenElement(31, "span");
-                builder.AddAttribute(32, "class", "badge bg-info");
-                builder.AddContent(33, "ユニット");
+                builder.OpenElement(34, "span");
+                builder.AddAttribute(35, "class", "badge bg-info");
+                builder.AddContent(36, "ユニット");
                 builder.CloseElement();
             }
         }
@@ -902,7 +909,7 @@
         {
             foreach (var child in part.Children)
             {
-                builder.AddContent(34, RenderPartRow(child));
+                builder.AddContent(37, RenderPartRow(child));
             }
         }
     };
