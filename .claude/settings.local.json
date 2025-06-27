@@ -11,7 +11,8 @@
       "Bash(ls:*)",
       "Bash(git push:*)",
       "Bash(rg:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }
