@@ -1,59 +1,128 @@
 @page "/machine/{MachineId}/partsfetch"
 @using Microsoft.AspNetCore.Components
 @using System.Collections.Generic
+@using System.Text.Json
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
 
 <PageTitle>部品情報取得</PageTitle>
 
 <h3>部品情報取得 <small class="text-muted">（画面No.4 - PartsFetch.razor）</small></h3>
 
+@if (isLoading)
+{
+    <div class="text-center p-4">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">読み込み中...</span>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-warning">
+        @errorMessage
+    </div>
+}
+
 <div class="mb-3">
-    <label>型式: <input class="form-control d-inline" style="width: 280px;" value="WTD-T16I" /></label>
-    <label class="ms-3">日付: <input type="date" class="form-control d-inline w-auto" value="2024-09-17" /></label>
-    <button class="btn btn-primary ms-3" @onclick="FetchParts">部品情報取得</button>
+    <label>型式: <input class="form-control d-inline" style="width: 280px;" @bind="model" /></label>
+    <label class="ms-3">日付: <input type="date" class="form-control d-inline w-auto" value="@completionDate" @onchange="@((ChangeEventArgs e) => completionDate = e.Value?.ToString() ?? "")" /></label>
+    <button class="btn btn-primary ms-3" @onclick="SearchMachineType" disabled="@(string.IsNullOrEmpty(model) || isLoading)">機種検索</button>
+    <button class="btn btn-success ms-3" @onclick="FetchParts" disabled="@(selectedMachineTypeId == null || string.IsNullOrEmpty(completionDate) || isLoading)">部品情報取得</button>
     <button class="btn btn-primary ms-3" @onclick="RegisterParts">取得結果登録</button>
     <a class="btn btn-primary ms-3" href="/machine/@MachineId/parts">閉じる</a>
 </div>
+
+<!-- 機種選択モーダル -->
+@if (showMachineTypeSelection && machineTypes.Count > 1)
+{
+    <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">機種選択</h5>
+                </div>
+                <div class="modal-body">
+                    <p>複数の機種が見つかりました。選択してください。</p>
+                    @foreach (var machineType in machineTypes)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="machineType" value="@machineType.Id" @onchange="@(() => selectedMachineTypeId = machineType.Id)" />
+                            <label class="form-check-label">
+                                @machineType.Name
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelMachineTypeSelection">キャンセル</button>
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmMachineTypeSelection" disabled="@(selectedMachineTypeId == null)">確定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- 選択された機種の表示 -->
+@if (selectedMachineType != null)
+{
+    <div class="alert alert-info">
+        <strong>選択された機種:</strong> @selectedMachineType.Name
+    </div>
+}
 
 @if (showResults)
 {
     <div class="mb-3">
         @if (fetchedParts.Count > 0)
-    {
-        <table class="table table-bordered table-hover">
-            <thead class="table-light">
-                <tr>
-                    <th>品番</th>
-                    <th>品名</th>
-                    <th>数量</th>
-                    <th>単位</th>
-                    <th>メーカー</th>
-                    <th>材質</th>
-                    <th>型式</th>
-                    <th>仕様</th>
-                    <th>備考</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var part in fetchedParts)
-                {
+        {
+            <h5>取得結果 (@fetchedParts.Count 件)</h5>
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
                     <tr>
-                        <td>@part.PartNumber</td>
-                        <td>@part.PartName</td>
-                        <td class="text-end">@part.Quantity</td>
-                        <td>@part.Unit</td>
-                        <td>@part.Manufacturer</td>
-                        <td>@part.Material</td>
-                        <td>@part.Model</td>
-                        <td>@part.Specification</td>
-                        <td>@part.Remarks</td>
+                        <th>品番</th>
+                        <th>品名</th>
+                        <th>数量</th>
+                        <th>メーカー</th>
+                        <th>材質</th>
+                        <th>型式</th>
+                        <th>備考</th>
+                        <th>種別</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    }
-    else
-    {
-        <p class="text-muted">取得結果がありません。</p>
+                </thead>
+                <tbody>
+                    @foreach (var part in fetchedParts)
+                    {
+                        <tr>
+                            <td>@part.PartNumber</td>
+                            <td>@part.PartName</td>
+                            <td class="text-end">@part.Quantity</td>
+                            <td>@part.Manufacturer</td>
+                            <td>@part.Material</td>
+                            <td>@part.Model</td>
+                            <td>@part.Remarks</td>
+                            <td>
+                                @if (part.IsUnit)
+                                {
+                                    @if (part.IsOptionUnit)
+                                    {
+                                        <span class="badge bg-warning text-dark">オプションユニット</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info">ユニット</span>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted">取得結果がありません。</p>
         }
     </div>
 }
@@ -62,33 +131,341 @@
     [Parameter] public string? MachineId { get; set; }
     private bool showResults = false;
     
+    // 機械情報を保持する変数
+    private string model = "";
+    private string completionDate = "";
+    
+    // 機種選択関連
+    private List<MachineType> machineTypes = new List<MachineType>();
+    private int? selectedMachineTypeId;
+    private MachineType? selectedMachineType;
+    private bool showMachineTypeSelection = false;
+    
+    private string apiBaseUrl = "http://localhost:5196/api";
+    private bool isLoading = false;
+    private string errorMessage = "";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        // URLからクエリパラメータを取得
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = uri.Query;
+        
+        bool hasQueryParams = false;
+        if (!string.IsNullOrEmpty(query))
+        {
+            var queryParams = ParseQueryString(query);
+            
+            model = GetQueryValue(queryParams, "model") ?? "";
+            completionDate = GetQueryValue(queryParams, "completion") ?? "";
+            
+            hasQueryParams = !string.IsNullOrEmpty(model);
+        }
+        
+        // URLパラメータがない場合はAPIから機械情報を取得
+        if (!hasQueryParams && !string.IsNullOrEmpty(MachineId))
+        {
+            await LoadMachineDataFromApi();
+        }
+    }
+    
+    private Dictionary<string, string> ParseQueryString(string query)
+    {
+        var result = new Dictionary<string, string>();
+        if (query.StartsWith("?"))
+        {
+            query = query.Substring(1);
+        }
+        
+        var pairs = query.Split('&');
+        foreach (var pair in pairs)
+        {
+            var keyValue = pair.Split('=');
+            if (keyValue.Length == 2)
+            {
+                result[keyValue[0]] = keyValue[1];
+            }
+        }
+        return result;
+    }
+    
+    private string? GetQueryValue(Dictionary<string, string> queryParams, string key)
+    {
+        if (queryParams.TryGetValue(key, out var value))
+        {
+            return Uri.UnescapeDataString(value);
+        }
+        return null;
+    }
+    
+    private async Task LoadMachineDataFromApi()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine/{MachineId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                if (data != null)
+                {
+                    model = GetStringValueFromApi(data, "型式") ?? "";
+                    completionDate = GetDateValueFromApi(data, "完成日") ?? "";
+                }
+            }
+            else
+            {
+                errorMessage = $"APIエラー: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"データ取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    
+    private string? GetStringValueFromApi(Dictionary<string, object> data, string key)
+    {
+        if (data.TryGetValue(key, out var value))
+        {
+            return value?.ToString();
+        }
+        return null;
+    }
+    
+    private string? GetDateValueFromApi(Dictionary<string, object> data, string key)
+    {
+        if (data.TryGetValue(key, out var value) && value != null)
+        {
+            if (value is JsonElement element && element.ValueKind != JsonValueKind.Null)
+            {
+                if (DateTime.TryParse(element.GetString(), out DateTime date))
+                {
+                    return date.ToString("yyyy-MM-dd");
+                }
+            }
+            if (DateTime.TryParse(value.ToString(), out DateTime parsedDate))
+            {
+                return parsedDate.ToString("yyyy-MM-dd");
+            }
+        }
+        return null;
+    }
+    
     public class Part
     {
         public string PartNumber { get; set; } = "";
         public string PartName { get; set; } = "";
         public int Quantity { get; set; }
-        public string Unit { get; set; } = "個";
         public string Manufacturer { get; set; } = "";
         public string Material { get; set; } = "";
         public string Model { get; set; } = "";
-        public string Specification { get; set; } = "";
         public string Remarks { get; set; } = "";
+        public bool IsUnit { get; set; }
+        public bool IsOptionUnit { get; set; }
     }
     
-    private List<Part> fetchedParts = new List<Part>
+    public class MachineType
     {
-        new Part { PartNumber = "MS-12345", PartName = "サーボモーター", Quantity = 2, Unit = "個", Manufacturer = "三菱電機", Material = "アルミニウム合金", Model = "HG-KR43B", Specification = "400W", Remarks = "高精度位置決め用" },
-        new Part { PartNumber = "BT-5678", PartName = "タイミングベルト", Quantity = 1, Unit = "本", Manufacturer = "ゲイツ", Material = "ゴム（EPDM）", Model = "8M-1000-20", Specification = "歯数125", Remarks = "定期交換推奨" },
-        new Part { PartNumber = "PS-9012", PartName = "近接センサー", Quantity = 3, Unit = "個", Manufacturer = "オムロン", Material = "ステンレス（SUS304）", Model = "E2E-X5ME1", Specification = "検出距離5mm", Remarks = "" }
-    };
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+    }
     
-    private void FetchParts()
+    private List<Part> fetchedParts = new List<Part>();
+    
+    private async Task SearchMachineType()
     {
-        showResults = true;
+        if (string.IsNullOrEmpty(model.Trim()))
+        {
+            errorMessage = "型式を入力してください。";
+            return;
+        }
+        
+        try
+        {
+            isLoading = true;
+            errorMessage = "";
+            
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine/search-model/{Uri.EscapeDataString(model.Trim())}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                if (result != null && result.ContainsKey("models"))
+                {
+                    var modelsElement = (JsonElement)result["models"];
+                    machineTypes.Clear();
+                    
+                    foreach (var modelElement in modelsElement.EnumerateArray())
+                    {
+                        var machineType = new MachineType
+                        {
+                            Id = int.Parse(modelElement.GetProperty("機種ID").GetString() ?? "0"),
+                            Name = modelElement.GetProperty("機種名").GetString() ?? ""
+                        };
+                        machineTypes.Add(machineType);
+                    }
+                    
+                    if (machineTypes.Count == 0)
+                    {
+                        errorMessage = "該当する機種が見つかりませんでした。";
+                    }
+                    else if (machineTypes.Count == 1)
+                    {
+                        // 1件のみの場合は自動選択
+                        selectedMachineTypeId = machineTypes[0].Id;
+                        selectedMachineType = machineTypes[0];
+                    }
+                    else
+                    {
+                        // 複数件の場合は選択モーダルを表示
+                        showMachineTypeSelection = true;
+                    }
+                }
+            }
+            else
+            {
+                errorMessage = $"APIエラー: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"機種検索エラー: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    
+    private void ConfirmMachineTypeSelection()
+    {
+        selectedMachineType = machineTypes.FirstOrDefault(m => m.Id == selectedMachineTypeId);
+        showMachineTypeSelection = false;
+    }
+    
+    private void CancelMachineTypeSelection()
+    {
+        selectedMachineTypeId = null;
+        selectedMachineType = null;
+        showMachineTypeSelection = false;
+    }
+    
+    private async Task FetchParts()
+    {
+        if (selectedMachineTypeId == null || string.IsNullOrEmpty(completionDate))
+        {
+            errorMessage = "機種と日付を指定してください。";
+            return;
+        }
+        
+        try
+        {
+            isLoading = true;
+            errorMessage = "";
+            
+            // 日付をyyyy-MM-ddフォーマットに変換
+            var formattedDate = completionDate;
+            if (DateTime.TryParse(completionDate, out DateTime parsedDate))
+            {
+                formattedDate = parsedDate.ToString("yyyy-MM-dd");
+            }
+            
+            var requestData = new
+            {
+                MachineTypeId = selectedMachineTypeId.Value,
+                TargetDate = formattedDate
+            };
+            
+            var jsonContent = JsonSerializer.Serialize(requestData);
+            var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+            
+            var response = await Http.PostAsync($"{apiBaseUrl}/Machine/fetch-parts", content);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                if (result != null && result.ContainsKey("parts"))
+                {
+                    var partsElement = (JsonElement)result["parts"];
+                    fetchedParts.Clear();
+                    
+                    foreach (var partElement in partsElement.EnumerateArray())
+                    {
+                        var part = new Part
+                        {
+                            PartNumber = partElement.GetProperty("品番").GetString() ?? "",
+                            PartName = partElement.GetProperty("品名").GetString() ?? "",
+                            Quantity = partElement.GetProperty("個数").GetInt32(),
+                            Manufacturer = partElement.GetProperty("メーカー").GetString() ?? "",
+                            Material = partElement.GetProperty("材質").GetString() ?? "",
+                            Model = partElement.GetProperty("型式").GetString() ?? "",
+                            Remarks = partElement.GetProperty("備考").GetString() ?? "",
+                            IsUnit = partElement.GetProperty("IsUnit").GetBoolean(),
+                            IsOptionUnit = partElement.GetProperty("IsOptionUnit").GetBoolean()
+                        };
+                        fetchedParts.Add(part);
+                    }
+                    
+                    showResults = true;
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var errorResult = JsonSerializer.Deserialize<Dictionary<string, object>>(errorContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                    if (errorResult != null && errorResult.ContainsKey("error"))
+                    {
+                        errorMessage = $"APIエラー: {errorResult["error"]}";
+                    }
+                    else
+                    {
+                        errorMessage = $"APIエラー: {response.StatusCode} - {errorContent}";
+                    }
+                }
+                catch
+                {
+                    errorMessage = $"APIエラー: {response.StatusCode} - {errorContent}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"部品取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
     
     private void RegisterParts()
     {
-        // 登録処理
+        // 登録処理は後で実装
     }
 } 

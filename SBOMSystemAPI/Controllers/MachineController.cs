@@ -519,5 +519,191 @@ namespace SBOMSystemAPI.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+        
+        [HttpGet("search-model/{modelName}")]
+        public async Task<IActionResult> SearchMachineModel(string modelName)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    string query = @"
+                        SELECT 機種ID, 機種名 
+                        FROM T_機種マスタ 
+                        WHERE 機種名 LIKE @ModelName
+                        ORDER BY 機種名";
+                    
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@ModelName", $"%{modelName}%");
+                        
+                        var models = new List<Dictionary<string, object>>();
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var model = new Dictionary<string, object>
+                                {
+                                    ["機種ID"] = reader["機種ID"],
+                                    ["機種名"] = reader["機種名"]?.ToString() ?? ""
+                                };
+                                models.Add(model);
+                            }
+                        }
+                        
+                        return Ok(new { models = models });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+        
+        [HttpGet("check-parts-table")]
+        public async Task<IActionResult> CheckPartsTable()
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    // T_部品マスタテーブルの構造を取得
+                    string structureQuery = @"
+                        SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE 
+                        FROM INFORMATION_SCHEMA.COLUMNS 
+                        WHERE TABLE_NAME = 'T_部品マスタ'
+                        ORDER BY ORDINAL_POSITION";
+                    
+                    using (SqlCommand command = new SqlCommand(structureQuery, connection))
+                    {
+                        using (SqlDataAdapter adapter = new SqlDataAdapter(command))
+                        {
+                            DataTable dataTable = new DataTable();
+                            adapter.Fill(dataTable);
+                            
+                            var columns = dataTable.AsEnumerable().Select(row => new
+                            {
+                                ColumnName = row["COLUMN_NAME"].ToString(),
+                                DataType = row["DATA_TYPE"].ToString(),
+                                MaxLength = row["CHARACTER_MAXIMUM_LENGTH"]?.ToString(),
+                                IsNullable = row["IS_NULLABLE"].ToString()
+                            }).ToList();
+                            
+                            return Ok(new { 
+                                exists = true, 
+                                tableName = "T_部品マスタ",
+                                columns = columns
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+        
+        [HttpPost("fetch-parts")]
+        public async Task<IActionResult> FetchParts([FromBody] FetchPartsRequest request)
+        {
+            try
+            {
+                // リクエストの検証
+                if (request.MachineTypeId <= 0)
+                {
+                    return BadRequest(new { error = "機種IDが無効です。" });
+                }
+                
+                if (string.IsNullOrEmpty(request.TargetDate))
+                {
+                    return BadRequest(new { error = "日付が指定されていません。" });
+                }
+                
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    // 日付を時刻型として扱う（その日の0時0分）
+                    DateTime targetDate;
+                    if (!DateTime.TryParse(request.TargetDate, out targetDate))
+                    {
+                        return BadRequest(new { error = $"日付の形式が正しくありません: {request.TargetDate}" });
+                    }
+                    
+                    // 時刻を0時0分0秒に設定
+                    targetDate = targetDate.Date;
+                    
+                    string query = @"
+                        SELECT 
+                            sub.部品ID,
+                            sub.個数,
+                            parts.品番,
+                            parts.品名,
+                            ISNULL(parts.メーカー, '') as メーカー,
+                            ISNULL(parts.材質, '') as 材質,
+                            ISNULL(parts.型式, '') as 型式,
+                            ISNULL(parts.備考, '') as 備考,
+                            ISNULL(parts.ユニット種別, 0) as ユニット種別,
+                            ISNULL(parts.オプションユニットFL, 0) as オプションユニットFL
+                        FROM T_機種部品サブ sub
+                        INNER JOIN T_部品マスタ parts ON sub.部品ID = parts.部品ID
+                        WHERE sub.機種ID = @MachineTypeId
+                        AND sub.登録日 <= @TargetDate
+                        AND (sub.廃止日 IS NULL OR sub.廃止日 > @TargetDate)
+                        ORDER BY parts.品番";
+                    
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@MachineTypeId", request.MachineTypeId);
+                        command.Parameters.AddWithValue("@TargetDate", targetDate);
+                        
+                        var parts = new List<Dictionary<string, object>>();
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var unitType = reader["ユニット種別"] != DBNull.Value ? Convert.ToInt16(reader["ユニット種別"]) : (short)0;
+                                var optionUnitFlag = reader["オプションユニットFL"] != DBNull.Value ? Convert.ToInt16(reader["オプションユニットFL"]) : (short)0;
+                                
+                                var part = new Dictionary<string, object>
+                                {
+                                    ["部品ID"] = reader["部品ID"],
+                                    ["個数"] = reader["個数"],
+                                    ["品番"] = reader["品番"]?.ToString() ?? "",
+                                    ["品名"] = reader["品名"]?.ToString() ?? "",
+                                    ["メーカー"] = reader["メーカー"]?.ToString() ?? "",
+                                    ["材質"] = reader["材質"]?.ToString() ?? "",
+                                    ["型式"] = reader["型式"]?.ToString() ?? "",
+                                    ["備考"] = reader["備考"]?.ToString() ?? "",
+                                    ["ユニット種別"] = unitType,
+                                    ["オプションユニットFL"] = optionUnitFlag,
+                                    ["IsUnit"] = unitType != 0,
+                                    ["IsOptionUnit"] = optionUnitFlag != 0
+                                };
+                                parts.Add(part);
+                            }
+                        }
+                        
+                        return Ok(new { parts = parts });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+    }
+    
+    public class FetchPartsRequest
+    {
+        public int MachineTypeId { get; set; }
+        public string TargetDate { get; set; } = "";
     }
 }
