@@ -6,7 +6,113 @@
 
 <PageTitle>機械詳細 - @MachineId</PageTitle>
 
-<h1>機械詳細 <small class="text-muted">（画面No.2 - MachineDetail.razor）</small></h1>
+<style>
+    .card-modern {
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    
+    .card-modern .card-header {
+        background: #0d6efd;
+        color: white;
+        border-radius: 8px 8px 0 0;
+        border: none;
+        padding: 0.75rem 1rem;
+    }
+    
+    .form-group-modern {
+        margin-bottom: 1rem;
+    }
+    
+    .form-label-modern {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+    }
+    
+    .form-control-modern {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.5rem;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+    }
+    
+    .form-control-modern:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        outline: none;
+    }
+    
+    .btn-modern-primary {
+        background: #0d6efd;
+        border: 1px solid #0d6efd;
+        color: white;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-modern-primary:hover {
+        background: #0b5ed7;
+        border-color: #0a58ca;
+        color: white;
+    }
+    
+    .btn-modern-secondary {
+        background: #6c757d;
+        border: 1px solid #6c757d;
+        color: white;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-modern-secondary:hover {
+        background: #5c636a;
+        border-color: #565e64;
+        color: white;
+    }
+    
+    .nav-tabs-modern {
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 1rem;
+    }
+    
+    .nav-tabs-modern .nav-link {
+        border: none;
+        color: #6c757d;
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        margin-right: 0.25rem;
+        transition: all 0.2s ease;
+    }
+    
+    .nav-tabs-modern .nav-link.active {
+        background: #0d6efd;
+        color: white;
+        border-bottom: 2px solid #0d6efd;
+    }
+    
+    .compact-layout {
+        margin-bottom: 0.5rem;
+    }
+    
+    .compact-card {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<!-- Header Section -->
+<div class="mb-2 pb-2 border-bottom border-2">
+    <h1 class="h3 mb-0 text-primary fw-bold">機械詳細 <small class="text-muted fs-6">（画面No.2 - MachineDetail.razor）</small></h1>
+</div>
 
 @if (isLoading)
 {
@@ -24,88 +130,122 @@ else if (!string.IsNullOrEmpty(errorMessage))
 }
 else
 {
-<div class="border p-3 mb-3" style="background:#f8f9fa">
-    <h5>＜個体情報＞</h5>
-    <div class="row mb-2">
-        <div class="col-md-2">
-            <label>型式 <span class="text-danger">*</span></label>
-            <input class="form-control @(string.IsNullOrWhiteSpace(machine.Model) && !string.IsNullOrEmpty(errorMessage) ? "is-invalid" : "")" @bind="machine.Model" required />
-        </div>
-        <div class="col-md-2">
-            <label>枝番</label>
-            <input class="form-control" @bind="machine.BranchNo" />
-        </div>
-        <div class="col-md-3">
-            <label>機種名</label>
-            <input class="form-control" @bind="machine.TypeName" />
-        </div>
-        <div class="col-md-2">
-            <label>ロットNo.</label>
-            <input class="form-control" @bind="machine.LotNo" />
-        </div>
-        <div class="col-md-2">
-            <label>ロット連番</label>
-            <input class="form-control" @bind="machine.LotSerial" />
-        </div>
-        <div class="col-md-2">
-            <label>号機番号</label>
-            <input class="form-control" @bind="machine.MachineNo" />
-        </div>
-        <div class="col-md-2">
-            <label>案件番号</label>
-            <input class="form-control" @bind="machine.ProjectNo" />
-        </div>
-        <div class="col-md-2">
-            <label>中古案件番号</label>
-            <input class="form-control" @bind="machine.UsedProjectNo" />
-        </div>
-        <div class="col-md-2">
-            <label>取付タンク番号</label>
-            <input class="form-control" @bind="machine.TankNo" />
-        </div>
-        <div class="col-md-2">
-            <label>注文書識別番号</label>
-            <input class="form-control" @bind="machine.OrderId" />
-        </div>
-        <div class="col-md-2">
-            <label>預けNo.</label>
-            <input class="form-control" @bind="machine.DepositNo" />
-        </div>
-        <div class="col-md-2">
-            <label>製造番号</label>
-            <input class="form-control" @bind="machine.Id" />
-        </div>
-        <div class="col-md-2">
-            <label>河北製造番号</label>
-            <input class="form-control" @bind="machine.KahokuId" />
-        </div>
-        <div class="col-md-2">
-            <label>過去製造番号</label>
-            <input class="form-control" @bind="machine.PastId" />
-        </div>
-        <div class="col-md-4">
-            <label>社内メモ</label>
-            <textarea class="form-control" @bind="machine.InternalMemo"></textarea>
-        </div>
-        <div class="col-md-6 d-flex align-items-end gap-4">
-            <div>
-                <input type="checkbox" class="form-check-input" @bind="machine.IsMasterOut" />
-                <label class="form-check-label ms-1">マスタ外登録</label>
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-light border-0 py-2">
+        <h6 class="mb-0 text-secondary fw-semibold small">個体情報</h6>
+    </div>
+    <div class="card-body py-3">
+        <div class="row g-2">
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">型式 <span class="text-danger">*</span></label>
+                    <input class="form-control form-control-modern @(string.IsNullOrWhiteSpace(machine.Model) && !string.IsNullOrEmpty(errorMessage) ? "is-invalid" : "")" @bind="machine.Model" required />
+                </div>
             </div>
-            <div>
-                <input type="checkbox" class="form-check-input" @bind="machine.IsDifficult" />
-                <label class="form-check-label ms-1">難</label>
+            <div class="col-md-1">
+                <div class="compact-layout">
+                    <label class="form-label-modern">枝番</label>
+                    <input class="form-control form-control-modern" @bind="machine.BranchNo" />
+                </div>
             </div>
-            <div>
-                <input type="checkbox" class="form-check-input" @bind="machine.IsNonStock" />
-                <label class="form-check-label ms-1">非在庫品</label>
+            <div class="col-md-3">
+                <div class="compact-layout">
+                    <label class="form-label-modern">機種名</label>
+                    <input class="form-control form-control-modern" @bind="machine.TypeName" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">ロットNo.</label>
+                    <input class="form-control form-control-modern" @bind="machine.LotNo" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">ロット連番</label>
+                    <input class="form-control form-control-modern" @bind="machine.LotSerial" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">号機番号</label>
+                    <input class="form-control form-control-modern" @bind="machine.MachineNo" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">案件番号</label>
+                    <input class="form-control form-control-modern" @bind="machine.ProjectNo" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">中古案件番号</label>
+                    <input class="form-control form-control-modern" @bind="machine.UsedProjectNo" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">取付タンク番号</label>
+                    <input class="form-control form-control-modern" @bind="machine.TankNo" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">注文書識別番号</label>
+                    <input class="form-control form-control-modern" @bind="machine.OrderId" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">預けNo.</label>
+                    <input class="form-control form-control-modern" @bind="machine.DepositNo" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">製造番号</label>
+                    <input class="form-control form-control-modern" @bind="machine.Id" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">河北製造番号</label>
+                    <input class="form-control form-control-modern" @bind="machine.KahokuId" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="compact-layout">
+                    <label class="form-label-modern">過去製造番号</label>
+                    <input class="form-control form-control-modern" @bind="machine.PastId" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="compact-layout">
+                    <label class="form-label-modern">社内メモ</label>
+                    <textarea class="form-control form-control-modern" rows="2" @bind="machine.InternalMemo"></textarea>
+                </div>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-3">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" @bind="machine.IsMasterOut" />
+                    <label class="form-check-label small">マスタ外登録</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" @bind="machine.IsDifficult" />
+                    <label class="form-check-label small">難</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" @bind="machine.IsNonStock" />
+                    <label class="form-check-label small">非在庫品</label>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- タブ切替 -->
-<ul class="nav nav-tabs mb-3">
+<ul class="nav nav-tabs nav-tabs-modern">
     <li class="nav-item">
         <a class="nav-link @(activeTab==0 ? "active" : "")" href="#" @onclick="() => activeTab=0">製造情報</a>
     </li>
@@ -122,80 +262,165 @@ else
         <a class="nav-link @(activeTab==4 ? "active" : "")" href="#" @onclick="() => activeTab=4">クレーム情報</a>
     </li>
 </ul>
-<div class="border p-3 mb-3" style="min-height:100px">
-    @if (activeTab == 0)
-    {
-        <div class="row">
-            <div class="col-md-2">
-                <h6>＜基本情報＞</h6>
-                <div class="row">
-                    <div class="col-md-6">
-                        <label>製造種別</label>
-                        <input class="form-control mb-1" @bind="machine.ProductionType" />
-                        <label>現在地</label>
-                        <input class="form-control mb-1" @bind="machine.Location" />
-                        <label>機械状態</label>
-                        <input class="form-control mb-1" @bind="machine.Status" />
-                        <label>管理区分</label>
-                        <input class="form-control mb-1" @bind="machine.ManagementType" />
+<div class="card shadow-sm">
+    <div class="card-body py-3">
+        @if (activeTab == 0)
+        {
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="compact-card">
+                        <div class="card-header bg-light py-2">
+                            <h6 class="mb-0 text-secondary small">基本情報</h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">製造種別</label>
+                                        <input class="form-control form-control-modern" @bind="machine.ProductionType" />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">現在地</label>
+                                        <input class="form-control form-control-modern" @bind="machine.Location" />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">機械状態</label>
+                                        <input class="form-control form-control-modern" @bind="machine.Status" />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">管理区分</label>
+                                        <input class="form-control form-control-modern" @bind="machine.ManagementType" />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">完成予定日</label>
+                                        <input type="date" class="form-control form-control-modern" @bind-value="machine.ScheduledDate" @bind-value:event="oninput" />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">仕掛品完成日</label>
+                                        <input type="date" class="form-control form-control-modern" @bind-value="machine.InProcessDate" @bind-value:event="oninput" />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">完成日</label>
+                                        <input type="date" class="form-control form-control-modern" @bind-value="machine.CompletionDate" @bind-value:event="oninput" />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">CR登録日</label>
+                                        <input type="date" class="form-control form-control-modern" @bind-value="machine.CRDate" @bind-value:event="oninput" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <label>完成予定日</label>
-                        <input type="date" class="form-control mb-1" @bind-value="machine.ScheduledDate" @bind-value:event="oninput" />
-                        <label>仕掛品完成日</label>
-                        <input type="date" class="form-control mb-1" @bind-value="machine.InProcessDate" @bind-value:event="oninput" />
-                        <label>完成日</label>
-                        <input type="date" class="form-control mb-1" @bind-value="machine.CompletionDate" @bind-value:event="oninput" />
-                        <label>CR登録日</label>
-                        <input type="date" class="form-control mb-1" @bind-value="machine.CRDate" @bind-value:event="oninput" />
+                </div>
+                <div class="col-lg-6">
+                    <div class="compact-card">
+                        <div class="card-header bg-light py-2">
+                            <h6 class="mb-0 text-secondary small">詳細情報</h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">メーカーオプション</label>
+                                        <textarea class="form-control form-control-modern" rows="3" @bind="machine.MakerOption"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">客先仕様</label>
+                                        <textarea class="form-control form-control-modern" rows="3" @bind="machine.CustomerSpec"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">仕様変更履歴</label>
+                                        <textarea class="form-control form-control-modern" rows="2" @bind="machine.SpecHistory"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">改造日</label>
+                                        <input type="date" class="form-control form-control-modern" @bind-value="machine.ModifyDate" @bind-value:event="oninput" />
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">組立指示書備考</label>
+                                        <textarea class="form-control form-control-modern" rows="2" @bind="machine.AssemblyNote"></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="compact-layout">
+                                        <label class="form-label-modern">改造内容</label>
+                                        <textarea class="form-control form-control-modern" rows="2" @bind="machine.ModifyContent"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <h6>＜メーカーオプション＞</h6>
-                <textarea class="form-control" rows="8" @bind="machine.MakerOption"></textarea>
+        }
+        else if (activeTab == 1)
+        {
+            <div class="text-center py-4">
+                <h6 class="text-muted">出荷情報タブの内容（今後拡張予定）</h6>
             </div>
-            <div class="col-md-2">
-                <h6>＜客先仕様＞</h6>
-                <textarea class="form-control" rows="8" @bind="machine.CustomerSpec"></textarea>
+        }
+        else if (activeTab == 2)
+        {
+            <div class="text-center py-4">
+                <h6 class="text-muted">預け情報タブの内容（今後拡張予定）</h6>
             </div>
-            <div class="col-md-3">
-                <h6>＜仕様変更履歴＞</h6>
-                <textarea class="form-control mb-1" rows="5" @bind="machine.SpecHistory"></textarea>
-                <h6>＜改造日＞</h6>
-                <input type="date" class="form-control" @bind-value="machine.ModifyDate" @bind-value:event="oninput" />
+        }
+        else if (activeTab == 3)
+        {
+            <div class="text-center py-4">
+                <h6 class="text-muted">メンテナンス情報タブの内容（今後拡張予定）</h6>
             </div>
-            <div class="col-md-3">
-                <h6>＜組立指示書備考＞</h6>
-                <textarea class="form-control mb-1" rows="3" @bind="machine.AssemblyNote"></textarea>
-                <h6>＜改造内容＞</h6>
-                <textarea class="form-control" rows="3" @bind="machine.ModifyContent"></textarea>
+        }
+        else if (activeTab == 4)
+        {
+            <div class="text-center py-4">
+                <h6 class="text-muted">クレーム情報タブの内容（今後拡張予定）</h6>
             </div>
-        </div>
-    }
-    else if (activeTab == 1)
-    {
-        <div>出荷情報タブの内容（今後拡張）</div>
-    }
-    else if (activeTab == 2)
-    {
-        <div>預け情報タブの内容（今後拡張）</div>
-    }
-    else if (activeTab == 3)
-    {
-        <div>メンテナンス情報タブの内容（今後拡張）</div>
-    }
-    else if (activeTab == 4)
-    {
-        <div>クレーム情報タブの内容（今後拡張）</div>
-    }
+        }
+    </div>
 </div>
 
-<div class="mt-4 text-end mb-4">
+<div class="mt-3 mb-4">
     <div class="d-flex justify-content-end gap-2">
-        <button class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px" @onclick="NavigateToPartsList">部品一覧画面を開く</button>
-        <button class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px" @onclick="OnRegister" disabled="@isLoading">@(isLoading ? "登録中..." : "登録")</button>
-        <a href="/" class="btn btn-primary d-flex align-items-center justify-content-center" style="width: 200px">キャンセル</a>
+        <button class="btn btn-modern-primary" style="width: 180px" @onclick="NavigateToPartsList">
+            部品一覧画面を開く
+        </button>
+        <button class="btn btn-modern-primary" style="width: 120px" @onclick="OnRegister" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                <span>登録中...</span>
+            }
+            else
+            {
+                <span>登録</span>
+            }
+        </button>
+        <a href="/" class="btn btn-modern-secondary" style="width: 120px">
+            キャンセル
+        </a>
     </div>
 </div>
 }
