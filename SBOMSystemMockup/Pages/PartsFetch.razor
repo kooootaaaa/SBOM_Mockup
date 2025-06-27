@@ -73,6 +73,58 @@
     </div>
 }
 
+<!-- オプションユニット選択モーダル -->
+@if (showOptionSelection && optionParts.Count > 0)
+{
+    <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">オプションユニット選択</h5>
+                </div>
+                <div class="modal-body">
+                    <p>この機種に含まれるオプションユニットです。実際に使用するものを選択してください。</p>
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-bordered">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th style="width: 50px;">選択</th>
+                                    <th>品番</th>
+                                    <th>品名</th>
+                                    <th>数量</th>
+                                    <th>メーカー</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var option in optionParts)
+                                {
+                                    <tr>
+                                        <td class="text-center">
+                                            <input type="checkbox" class="form-check-input" 
+                                                   checked="@selectedOptionParts.Contains(option.PartNumber)"
+                                                   @onchange="@((ChangeEventArgs e) => ToggleOptionPart(option.PartNumber, e.Value?.ToString() == "True"))" />
+                                        </td>
+                                        <td>@option.PartNumber</td>
+                                        <td>@option.PartName</td>
+                                        <td class="text-end">@option.Quantity</td>
+                                        <td>@option.Manufacturer</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <strong>選択されたオプション: @selectedOptionParts.Count 件</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmOptionSelection">確定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @if (showResults)
 {
     <div class="mb-3">
@@ -120,7 +172,7 @@
                                 {
                                     @if (part.IsOptionUnit)
                                     {
-                                        <span class="badge bg-warning text-dark">オプションユニット</span>
+                                        <span class="badge bg-warning text-dark">オプション</span>
                                     }
                                     else
                                     {
@@ -168,6 +220,7 @@
     </div>
 }
 
+
 @code {
     [Parameter] public string? MachineId { get; set; }
     private bool showResults = false;
@@ -192,6 +245,11 @@
     private int pageSize = 10;
     private int totalRecords = 0;
     private int totalPages = 0;
+    
+    // オプションユニット選択用
+    private HashSet<string> selectedOptionParts = new HashSet<string>();
+    private bool showOptionSelection = false;
+    private List<Part> optionParts = new List<Part>();
     
     protected override async Task OnInitializedAsync()
     {
@@ -457,6 +515,7 @@
                 {
                     var partsElement = (JsonElement)result["parts"];
                     allParts.Clear();
+                    selectedOptionParts.Clear(); // 新しい検索時は選択をクリア
                     
                     foreach (var partElement in partsElement.EnumerateArray())
                     {
@@ -475,10 +534,20 @@
                         allParts.Add(part);
                     }
                     
-                    totalRecords = allParts.Count;
-                    totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
-                    currentPage = 1;
-                    showResults = true;
+                    // オプションユニットを抽出
+                    optionParts = allParts.Where(p => p.IsOptionUnit).ToList();
+                    
+                    if (optionParts.Count > 0)
+                    {
+                        // オプションユニットがある場合は選択モーダルを表示
+                        showOptionSelection = true;
+                        showResults = false;
+                    }
+                    else
+                    {
+                        // オプションユニットがない場合は結果を表示
+                        UpdateDisplayParts();
+                    }
                 }
             }
             else
@@ -515,10 +584,28 @@
         }
     }
     
+    private List<Part> displayParts = new List<Part>();
+    
     private List<Part> GetCurrentPageParts()
     {
         var startIndex = (currentPage - 1) * pageSize;
-        return allParts.Skip(startIndex).Take(pageSize).ToList();
+        return displayParts.Skip(startIndex).Take(pageSize).ToList();
+    }
+    
+    private void UpdateDisplayParts()
+    {
+        // オプションユニット以外 + 選択されたオプションユニットを表示
+        displayParts = allParts.Where(p => !p.IsOptionUnit || selectedOptionParts.Contains(p.PartNumber)).ToList();
+        totalRecords = displayParts.Count;
+        totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+        currentPage = 1;
+        showResults = true;
+    }
+    
+    private void ConfirmOptionSelection()
+    {
+        showOptionSelection = false;
+        UpdateDisplayParts();
     }
     
     private void GoToPage(int page)
@@ -539,8 +626,21 @@
         }
     }
     
+    private void ToggleOptionPart(string partNumber, bool isChecked)
+    {
+        if (isChecked)
+        {
+            selectedOptionParts.Add(partNumber);
+        }
+        else
+        {
+            selectedOptionParts.Remove(partNumber);
+        }
+    }
+    
     private void RegisterParts()
     {
         // 登録処理は後で実装
+        // displayPartsに表示されている部品（選択されたオプションを含む）が登録対象
     }
 } 
