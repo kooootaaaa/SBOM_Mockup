@@ -4,94 +4,211 @@
 
 <PageTitle>機械管理台帳</PageTitle>
 
-<h1>機械管理台帳 <small class="text-muted">（画面No.1 - Home.razor）</small></h1>
+<!-- Header Section -->
+<div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-2">
+    <div>
+        <h1 class="h3 mb-0 text-primary fw-bold">機械管理台帳 <small class="text-muted fs-6">（画面No.1 - Home.razor）</small></h1>
+    </div>
+    <div class="badge bg-light text-dark px-2 py-1">
+        <i class="bi bi-server me-1"></i>総機械数: @(totalRecords)台
+    </div>
+</div>
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
-    <div class="alert alert-danger">
-        <strong>データベース接続エラー:</strong> @errorMessage
-        <br/>現在はサンプルデータを表示しています。
+    <div class="alert alert-warning border-0 py-2 mb-2">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+            <small><strong>DB接続エラー:</strong> @errorMessage（サンプルデータ表示中）</small>
+        </div>
     </div>
 }
 
-<div class="mb-3">
-    <label class="me-2"><input type="checkbox" @bind="filterCompleted" /> 完成</label>
-    <label class="me-2"><input type="checkbox" @bind="filterUnshipped" /> 未出荷</label>
-    <label class="me-2"><input type="checkbox" @bind="filterInStock" /> 保留</label>
-    <label class="me-2"><input type="checkbox" @bind="filterDemo" /> デモ機</label>
-    <select class="form-select d-inline w-auto me-2" @bind="selectedSeries">
-        <option value="">シリーズ選択</option>
-        <option value="A">Aシリーズ</option>
-        <option value="B">Bシリーズ</option>
-    </select>
-    <input class="form-control d-inline w-auto me-2" placeholder="型式" @bind="filterModel" />
-    <input class="form-control d-inline w-auto me-2" placeholder="製造番号" @bind="filterId" />
-    <button class="btn btn-primary me-2" @onclick="ApplyFilter">抽出実行</button>
-    <button class="btn btn-secondary" @onclick="ClearFilter">解除</button>
+<!-- Filter Section -->
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-light border-0 py-2">
+        <h6 class="mb-0 text-secondary fw-semibold small">
+            <i class="bi bi-funnel me-1"></i>検索・絞り込み
+        </h6>
+    </div>
+    <div class="card-body py-3">
+        <!-- Status Filters -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <label class="text-muted small mb-1 d-block">機械状態</label>
+                <div class="d-flex flex-wrap gap-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input form-check-input-sm" type="checkbox" @bind="filterCompleted" id="filterCompleted">
+                        <label class="form-check-label small" for="filterCompleted">完成</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input form-check-input-sm" type="checkbox" @bind="filterUnshipped" id="filterUnshipped">
+                        <label class="form-check-label small" for="filterUnshipped">未出荷</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input form-check-input-sm" type="checkbox" @bind="filterInStock" id="filterInStock">
+                        <label class="form-check-label small" for="filterInStock">保留</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input form-check-input-sm" type="checkbox" @bind="filterDemo" id="filterDemo">
+                        <label class="form-check-label small" for="filterDemo">デモ機</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Search Inputs -->
+        <div class="row g-2 mb-2">
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">シリーズ</label>
+                <select class="form-select form-select-sm" @bind="selectedSeries">
+                    <option value="">すべて</option>
+                    <option value="A">Aシリーズ</option>
+                    <option value="B">Bシリーズ</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small mb-1">型式</label>
+                <input class="form-control form-control-sm" placeholder="型式名で検索..." @bind="filterModel" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small mb-1">製造番号</label>
+                <input class="form-control form-control-sm" placeholder="製造番号で検索..." @bind="filterId" />
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm px-3" @onclick="ApplyFilter">
+                <i class="bi bi-search me-1"></i>検索実行
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFilter">
+                <i class="bi bi-arrow-clockwise me-1"></i>リセット
+            </button>
+        </div>
+    </div>
 </div>
 
-<table class="table table-bordered table-sm" style="table-layout: fixed;">
-    <thead>
-        <tr>
-            <th style="width: 10%;">製造番号</th>
-            <th style="width: 12%;">型式</th>
-            <th style="width: 20%;">機種名</th>
-            <th style="width: 10%;">現在地</th>
-            <th style="width: 8%;">機械状態</th>
-            <th style="width: 6%;">預けNo.</th>
-            <th style="width: 8%;">管理区分</th>
-            <th style="width: 11%;">メーカーオプション</th>
-            <th style="width: 11%;">客先仕様</th>
-            <th style="width: 6%;">完成日</th>
-            <th style="width: 8%;">操作</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var machine in filteredMachines)
-        {
-            <tr>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@machine.Id</td>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@machine.Model</td>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@machine.TypeName</td>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@machine.Location</td>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@machine.Status</td>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@machine.DepositNo</td>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@machine.ManagementType</td>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@machine.MakerOption">@machine.MakerOption</td>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@machine.CustomerSpec">@machine.CustomerSpec</td>
-                <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@FormatCompletionDate(machine.CompletionDate)</td>
-                <td>
-                    <a href="@($"/machine/{machine.ManagementId ?? machine.Id}")" class="btn btn-primary btn-sm">詳細表示</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<!-- Machine List -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white border-0 py-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-secondary fw-semibold small">
+                <i class="bi bi-list-ul me-1"></i>機械一覧
+            </h6>
+            @if (totalRecords > 0)
+            {
+                <small class="text-muted">
+                    @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, totalRecords)) / @totalRecords 件表示
+                </small>
+            }
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="border-0 py-2 text-muted small fw-semibold">製造番号</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold">型式</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold">機種名</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold">現在地</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold">状態</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold">預けNo.</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold">管理区分</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold">メーカーOP</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold">客先仕様</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold">完成日</th>
+                    <th class="border-0 py-2 text-muted small fw-semibold text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var machine in filteredMachines)
+                {
+                    <tr class="border-bottom">
+                        <td class="py-1 align-middle">
+                            <span class="fw-medium text-dark small">@machine.Id</span>
+                        </td>
+                        <td class="py-1 align-middle">
+                            <span class="badge bg-primary bg-opacity-10 text-primary small">@machine.Model</span>
+                        </td>
+                        <td class="py-1 align-middle" title="@machine.TypeName">
+                            <div class="text-truncate small" style="max-width: 180px;">
+                                @machine.TypeName
+                            </div>
+                        </td>
+                        <td class="py-1 align-middle">
+                            <i class="bi bi-geo-alt text-muted me-1"></i><span class="small">@machine.Location</span>
+                        </td>
+                        <td class="py-1 align-middle">
+                            @{
+                                var statusClass = machine.Status switch {
+                                    var s when s.Contains("新品") => "success",
+                                    var s when s.Contains("中古") => "warning",
+                                    var s when s.Contains("未出荷") => "info",
+                                    var s when s.Contains("保留") => "secondary",
+                                    var s when s.Contains("デモ") => "primary",
+                                    _ => "light"
+                                };
+                            }
+                            <span class="badge bg-@statusClass bg-opacity-10 text-@statusClass small">@machine.Status</span>
+                        </td>
+                        <td class="py-1 align-middle text-muted small">@machine.DepositNo</td>
+                        <td class="py-1 align-middle text-muted small">@machine.ManagementType</td>
+                        <td class="py-1 align-middle" title="@machine.MakerOption">
+                            <div class="text-truncate text-muted small" style="max-width: 100px;">
+                                @machine.MakerOption
+                            </div>
+                        </td>
+                        <td class="py-1 align-middle" title="@machine.CustomerSpec">
+                            <div class="text-truncate text-muted small" style="max-width: 100px;">
+                                @machine.CustomerSpec
+                            </div>
+                        </td>
+                        <td class="py-1 align-middle text-muted small">
+                            <i class="bi bi-calendar3 me-1"></i>@FormatCompletionDate(machine.CompletionDate)
+                        </td>
+                        <td class="py-1 align-middle text-center">
+                            <a href="@($"/machine/{machine.ManagementId ?? machine.Id}")" class="btn btn-outline-primary btn-sm px-2 py-1">
+                                <i class="bi bi-eye me-1"></i>詳細
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
 @if (totalRecords > 0)
 {
-    <nav aria-label="ページネーション">
-        <ul class="pagination justify-content-center">
-            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                <button class="page-link" @onclick="() => GoToPage(currentPage - 1)" disabled="@(currentPage == 1)">前へ</button>
-            </li>
-            
-            @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
-            {
-                int pageNumber = i; // ローカル変数にコピーして変数キャプチャの問題を回避
-                <li class="page-item @(pageNumber == currentPage ? "active" : "")">
-                    <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
-                </li>
-            }
-            
-            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                <button class="page-link" @onclick="() => GoToPage(currentPage + 1)" disabled="@(currentPage == totalPages)">次へ</button>
-            </li>
-        </ul>
-    </nav>
-    
-    <div class="text-center mt-2">
-        @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, totalRecords)) / @totalRecords 件
+    <div class="card-footer bg-light border-0 py-2">
+        <div class="d-flex justify-content-center">
+            <nav aria-label="ページネーション">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                        <button class="page-link border-0 px-2" @onclick="() => GoToPage(currentPage - 1)" disabled="@(currentPage == 1)">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+                    
+                    @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                    {
+                        int pageNumber = i;
+                        <li class="page-item @(pageNumber == currentPage ? "active" : "")">
+                            <button class="page-link border-0 px-2 @(pageNumber == currentPage ? "bg-primary text-white" : "text-primary")" @onclick="() => GoToPage(pageNumber)">
+                                @pageNumber
+                            </button>
+                        </li>
+                    }
+                    
+                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                        <button class="page-link border-0 px-2" @onclick="() => GoToPage(currentPage + 1)" disabled="@(currentPage == totalPages)">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
 }
 
@@ -99,7 +216,7 @@
     private List<Machine> machines = new();
     private List<Machine> filteredMachines = new();
     private int currentPage = 1;
-    private int pageSize = 15;
+    private int pageSize = 10;
     private int totalRecords = 0;
     private int totalPages = 0;
     private string errorMessage = "";
