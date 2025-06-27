@@ -12,7 +12,8 @@
       "Bash(git push:*)",
       "Bash(rg:*)",
       "Bash(find:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

@@ -699,11 +699,118 @@ namespace SBOMSystemAPI.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+        
+        [HttpPost("parts-children")]
+        public async Task<IActionResult> GetPartsChildren([FromBody] PartsChildrenRequest request)
+        {
+            try
+            {
+                // リクエストの検証
+                if (request.ParentPartIds == null || request.ParentPartIds.Count == 0)
+                {
+                    return BadRequest(new { error = "親部品IDが指定されていません。" });
+                }
+                
+                if (string.IsNullOrEmpty(request.TargetDate))
+                {
+                    return BadRequest(new { error = "日付が指定されていません。" });
+                }
+                
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    // 日付を時刻型として扱う
+                    DateTime targetDate;
+                    if (!DateTime.TryParse(request.TargetDate, out targetDate))
+                    {
+                        return BadRequest(new { error = $"日付の形式が正しくありません: {request.TargetDate}" });
+                    }
+                    
+                    targetDate = targetDate.Date;
+                    
+                    // 親部品IDのリストをカンマ区切りの文字列に変換
+                    string parentIds = string.Join(",", request.ParentPartIds);
+                    
+                    string query = @"
+                        SELECT 
+                            child.親部品コード,
+                            child.子部品コード,
+                            child.個数,
+                            parts.品番,
+                            parts.品名,
+                            ISNULL(parts.メーカー, '') as メーカー,
+                            ISNULL(parts.材質, '') as 材質,
+                            ISNULL(parts.型式, '') as 型式,
+                            ISNULL(parts.備考, '') as 備考,
+                            ISNULL(parts.ユニット種別, 0) as ユニット種別,
+                            ISNULL(parts.オプションユニットFL, 0) as オプションユニットFL
+                        FROM T_部品子部品サブ child
+                        INNER JOIN T_部品マスタ parts ON child.子部品コード = parts.部品ID
+                        WHERE child.親部品コード IN (" + parentIds + @")
+                        AND child.登録日 <= @TargetDate
+                        AND (child.廃止日 IS NULL OR child.廃止日 > @TargetDate)
+                        ORDER BY child.親部品コード, parts.品番";
+                    
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@TargetDate", targetDate);
+                        
+                        var childParts = new Dictionary<int, List<Dictionary<string, object>>>();
+                        
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var parentId = Convert.ToInt32(reader["親部品コード"]);
+                                var unitType = reader["ユニット種別"] != DBNull.Value ? Convert.ToInt16(reader["ユニット種別"]) : (short)0;
+                                var optionUnitFlag = reader["オプションユニットFL"] != DBNull.Value ? Convert.ToInt16(reader["オプションユニットFL"]) : (short)0;
+                                
+                                var childPart = new Dictionary<string, object>
+                                {
+                                    ["部品ID"] = reader["子部品コード"],
+                                    ["個数"] = reader["個数"],
+                                    ["品番"] = reader["品番"]?.ToString() ?? "",
+                                    ["品名"] = reader["品名"]?.ToString() ?? "",
+                                    ["メーカー"] = reader["メーカー"]?.ToString() ?? "",
+                                    ["材質"] = reader["材質"]?.ToString() ?? "",
+                                    ["型式"] = reader["型式"]?.ToString() ?? "",
+                                    ["備考"] = reader["備考"]?.ToString() ?? "",
+                                    ["ユニット種別"] = unitType,
+                                    ["オプションユニットFL"] = optionUnitFlag,
+                                    ["IsUnit"] = unitType != 0,
+                                    ["IsOptionUnit"] = optionUnitFlag != 0
+                                };
+                                
+                                if (!childParts.ContainsKey(parentId))
+                                {
+                                    childParts[parentId] = new List<Dictionary<string, object>>();
+                                }
+                                
+                                childParts[parentId].Add(childPart);
+                            }
+                        }
+                        
+                        return Ok(new { childParts = childParts });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
     
     public class FetchPartsRequest
     {
         public int MachineTypeId { get; set; }
+        public string TargetDate { get; set; } = "";
+    }
+    
+    public class PartsChildrenRequest
+    {
+        public List<int> ParentPartIds { get; set; } = new List<int>();
         public string TargetDate { get; set; } = "";
     }
 }

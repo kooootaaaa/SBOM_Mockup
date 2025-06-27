@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SBOMSystemAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b42903bb994007a4d878dac9dfb4d0cd3d830216")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8c004d315e03c0bb319a93be73877ba447051d3d")]
 [assembly: System.Reflection.AssemblyProductAttribute("SBOMSystemAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SBOMSystemAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
