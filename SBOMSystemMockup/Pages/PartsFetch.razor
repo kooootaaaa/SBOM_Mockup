@@ -5,6 +5,7 @@
 @using System.Text.Json
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
+@implements IDisposable
 
 <PageTitle>部品情報取得</PageTitle>
 
@@ -27,9 +28,19 @@
 }
 
 <div class="mb-3">
-    <label>型式: <input class="form-control d-inline" style="width: 280px;" @bind="model" /></label>
+    <label>型式: <input class="form-control d-inline" style="width: 280px;" @bind="model" @bind:event="oninput" @onchange="OnModelChanged" /></label>
     <label class="ms-3">日付: <input type="date" class="form-control d-inline w-auto" value="@completionDate" @onchange="@((ChangeEventArgs e) => completionDate = e.Value?.ToString() ?? "")" /></label>
-    <button class="btn btn-primary ms-3" @onclick="SearchMachineType" disabled="@(string.IsNullOrEmpty(model) || isLoading)">機種検索</button>
+    @if (showMachineSearchButton)
+    {
+        <button class="btn btn-primary ms-3" @onclick="SearchMachineType" disabled="@(string.IsNullOrEmpty(model) || isLoading)">機種検索</button>
+    }
+    @if (isAutoSearching)
+    {
+        <span class="ms-3 text-muted">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            機種検索中...
+        </span>
+    }
     <button class="btn btn-success ms-3" @onclick="FetchParts" disabled="@(selectedMachineTypeId == null || string.IsNullOrEmpty(completionDate) || isLoading)">部品情報取得</button>
     <button class="btn btn-primary ms-3" @onclick="RegisterParts">取得結果登録</button>
     <a class="btn btn-primary ms-3" href="/machine/@MachineId/parts">閉じる</a>
@@ -251,6 +262,11 @@
     private bool showOptionSelection = false;
     private List<Part> optionParts = new List<Part>();
     
+    // 自動検索用
+    private bool showMachineSearchButton = true;
+    private bool isAutoSearching = false;
+    private System.Threading.Timer? debounceTimer;
+    
     protected override async Task OnInitializedAsync()
     {
         // URLからクエリパラメータを取得
@@ -272,6 +288,12 @@
         if (!hasQueryParams && !string.IsNullOrEmpty(MachineId))
         {
             await LoadMachineDataFromApi();
+        }
+        
+        // 初期化完了後、型式が設定されている場合は自動検索を実行
+        if (!string.IsNullOrEmpty(model))
+        {
+            await AutoSearchMachineType();
         }
     }
     
@@ -323,6 +345,12 @@
                 {
                     model = GetStringValueFromApi(data, "型式") ?? "";
                     completionDate = GetDateValueFromApi(data, "完成日") ?? "";
+                    
+                    // 型式が取得できた場合は自動検索を実行
+                    if (!string.IsNullOrEmpty(model))
+                    {
+                        await AutoSearchMachineType();
+                    }
                 }
             }
             else
@@ -389,6 +417,103 @@
     
     private List<Part> fetchedParts = new List<Part>();
     
+    private void OnModelChanged(ChangeEventArgs e)
+    {
+        model = e.Value?.ToString() ?? "";
+        
+        // debounceタイマーをリセット
+        debounceTimer?.Dispose();
+        
+        if (string.IsNullOrEmpty(model.Trim()))
+        {
+            // 型式が空の場合は初期状態に戻す
+            ResetMachineSelection();
+            return;
+        }
+        
+        // 500ms後に自動検索を実行
+        debounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await AutoSearchMachineType();
+                StateHasChanged();
+            });
+        }, null, 500, Timeout.Infinite);
+    }
+    
+    private async Task AutoSearchMachineType()
+    {
+        if (string.IsNullOrEmpty(model.Trim()))
+            return;
+            
+        try
+        {
+            isAutoSearching = true;
+            errorMessage = "";
+            ResetMachineSelection();
+            
+            var response = await Http.GetAsync($"{apiBaseUrl}/Machine/search-model/{Uri.EscapeDataString(model.Trim())}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                if (result != null && result.ContainsKey("models"))
+                {
+                    var modelsElement = (JsonElement)result["models"];
+                    machineTypes.Clear();
+                    
+                    foreach (var modelElement in modelsElement.EnumerateArray())
+                    {
+                        var machineType = new MachineType
+                        {
+                            Id = int.Parse(modelElement.GetProperty("機種ID").GetString() ?? "0"),
+                            Name = modelElement.GetProperty("機種名").GetString() ?? ""
+                        };
+                        machineTypes.Add(machineType);
+                    }
+                    
+                    if (machineTypes.Count == 0)
+                    {
+                        errorMessage = "該当する機種が見つかりませんでした。";
+                        showMachineSearchButton = true;
+                    }
+                    else if (machineTypes.Count == 1)
+                    {
+                        // 1件のみの場合は自動選択し、機種検索ボタンを非表示
+                        selectedMachineTypeId = machineTypes[0].Id;
+                        selectedMachineType = machineTypes[0];
+                        showMachineSearchButton = false;
+                    }
+                    else
+                    {
+                        // 複数件の場合は機種検索ボタンを表示
+                        showMachineSearchButton = true;
+                    }
+                }
+            }
+            else
+            {
+                errorMessage = $"APIエラー: {response.StatusCode}";
+                showMachineSearchButton = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"機種検索エラー: {ex.Message}";
+            showMachineSearchButton = true;
+        }
+        finally
+        {
+            isAutoSearching = false;
+        }
+    }
+    
     private async Task SearchMachineType()
     {
         if (string.IsNullOrEmpty(model.Trim()))
@@ -436,6 +561,7 @@
                         // 1件のみの場合は自動選択
                         selectedMachineTypeId = machineTypes[0].Id;
                         selectedMachineType = machineTypes[0];
+                        showMachineSearchButton = false;
                     }
                     else
                     {
@@ -459,10 +585,20 @@
         }
     }
     
+    private void ResetMachineSelection()
+    {
+        selectedMachineTypeId = null;
+        selectedMachineType = null;
+        showMachineTypeSelection = false;
+        showMachineSearchButton = true;
+        machineTypes.Clear();
+    }
+    
     private void ConfirmMachineTypeSelection()
     {
         selectedMachineType = machineTypes.FirstOrDefault(m => m.Id == selectedMachineTypeId);
         showMachineTypeSelection = false;
+        showMachineSearchButton = false; // 選択後は機種検索ボタンを非表示
     }
     
     private void CancelMachineTypeSelection()
@@ -470,6 +606,7 @@
         selectedMachineTypeId = null;
         selectedMachineType = null;
         showMachineTypeSelection = false;
+        showMachineSearchButton = true; // キャンセル時は機種検索ボタンを表示
     }
     
     private async Task FetchParts()
@@ -642,5 +779,10 @@
     {
         // 登録処理は後で実装
         // displayPartsに表示されている部品（選択されたオプションを含む）が登録対象
+    }
+    
+    public void Dispose()
+    {
+        debounceTimer?.Dispose();
     }
 } 

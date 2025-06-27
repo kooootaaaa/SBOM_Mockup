@@ -1254,10 +1254,10 @@ C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup
 C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\obj\Debug\net9.0\compressed\8wv3j8z4ui-9flbse11v9.gz
 C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\obj\Debug\net9.0\compressed\jwh5tz9q3z-wiqavfanqw.gz
 C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\obj\Debug\net9.0\compressed\yogpu1sn90-g47qe8isu4.gz
-C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\bin\Debug\net9.0\wwwroot\_framework\SBOMSystemMockup.rve7il57ew.wasm
-C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\bin\Debug\net9.0\wwwroot\_framework\SBOMSystemMockup.qy43t4gks8.pdb
-C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\bin\Debug\net9.0\wwwroot\_framework\SBOMSystemMockup.rve7il57ew.wasm.gz
-C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\bin\Debug\net9.0\wwwroot\_framework\SBOMSystemMockup.qy43t4gks8.pdb.gz
-C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\obj\Debug\net9.0\compressed\lff0a9lucu-rve7il57ew.gz
-C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\obj\Debug\net9.0\compressed\kp4d53j9aj-qy43t4gks8.gz
-C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\obj\Debug\net9.0\compressed\jwd05bzsjq-81z50jv2nm.gz
+C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\bin\Debug\net9.0\wwwroot\_framework\SBOMSystemMockup.kda1ly3j2e.wasm
+C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\bin\Debug\net9.0\wwwroot\_framework\SBOMSystemMockup.lrkawwxhqs.pdb
+C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\bin\Debug\net9.0\wwwroot\_framework\SBOMSystemMockup.kda1ly3j2e.wasm.gz
+C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\bin\Debug\net9.0\wwwroot\_framework\SBOMSystemMockup.lrkawwxhqs.pdb.gz
+C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\obj\Debug\net9.0\compressed\lff0a9lucu-kda1ly3j2e.gz
+C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\obj\Debug\net9.0\compressed\kp4d53j9aj-lrkawwxhqs.gz
+C:\Users\k_yam\Dropbox\PC\Desktop\システム関連\Study\SBOM\SBOMSystemMockup\obj\Debug\net9.0\compressed\jwd05bzsjq-dfowzb9320.gz
