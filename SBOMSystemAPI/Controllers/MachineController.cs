@@ -118,7 +118,50 @@ namespace SBOMSystemAPI.Controllers
                                 IsNullable = row["IS_NULLABLE"].ToString()
                             }).ToList();
                             
-                            return Ok(new { exists = true, columns = columns });
+                            // 主キー情報を取得
+                            string primaryKeyQuery = @"
+                                SELECT COLUMN_NAME
+                                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                                WHERE TABLE_NAME = 'T_機械管理台帳' 
+                                AND CONSTRAINT_NAME LIKE 'PK_%'";
+                            
+                            var primaryKeys = new List<string>();
+                            using (SqlCommand pkCommand = new SqlCommand(primaryKeyQuery, connection))
+                            {
+                                using (SqlDataReader reader = pkCommand.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        primaryKeys.Add(reader.GetString(0));
+                                    }
+                                }
+                            }
+                            
+                            // IDENTITY列情報を取得
+                            string identityQuery = @"
+                                SELECT COLUMN_NAME
+                                FROM INFORMATION_SCHEMA.COLUMNS
+                                WHERE TABLE_NAME = 'T_機械管理台帳'
+                                AND COLUMNPROPERTY(OBJECT_ID(TABLE_SCHEMA + '.' + TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1";
+                            
+                            var identityColumns = new List<string>();
+                            using (SqlCommand idCommand = new SqlCommand(identityQuery, connection))
+                            {
+                                using (SqlDataReader reader = idCommand.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        identityColumns.Add(reader.GetString(0));
+                                    }
+                                }
+                            }
+                            
+                            return Ok(new { 
+                                exists = true, 
+                                columns = columns,
+                                primaryKeys = primaryKeys,
+                                identityColumns = identityColumns
+                            });
                         }
                     }
                 }
@@ -193,8 +236,9 @@ namespace SBOMSystemAPI.Controllers
             }
         }
         
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetMachineDetail(string id)
+        // 製造番号で取得する既存のエンドポイント（互換性のため残す）
+        [HttpGet("by-serial/{serialNumber}")]
+        public async Task<IActionResult> GetMachineDetailBySerial(string serialNumber)
         {
             try
             {
@@ -206,7 +250,81 @@ namespace SBOMSystemAPI.Controllers
                     string query = @"
                         SELECT * 
                         FROM T_機械管理台帳 
-                        WHERE 製造番号 = @MachineId";
+                        WHERE 製造番号 = @SerialNumber";
+                    
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@SerialNumber", serialNumber);
+                        
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                var machine = new Dictionary<string, object>();
+                                
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    var fieldName = reader.GetName(i);
+                                    var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                    machine[fieldName] = value;
+                                }
+                                
+                                return Ok(machine);
+                            }
+                            else
+                            {
+                                return NotFound(new { error = $"製造番号 {serialNumber} の機械が見つかりません。" });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+        
+        // 機械管理IDで取得する新しいエンドポイント
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetMachineDetail(string id)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    // まず機械管理IDカラムが存在するか確認
+                    string checkColumnQuery = @"
+                        SELECT COUNT(*) 
+                        FROM INFORMATION_SCHEMA.COLUMNS 
+                        WHERE TABLE_NAME = 'T_機械管理台帳' 
+                        AND COLUMN_NAME = '機械管理ID'";
+                    
+                    bool hasManagementId = false;
+                    using (SqlCommand checkCommand = new SqlCommand(checkColumnQuery, connection))
+                    {
+                        hasManagementId = (int)await checkCommand.ExecuteScalarAsync() > 0;
+                    }
+                    
+                    // 機械管理IDカラムが存在する場合はそれを使用、存在しない場合は製造番号を使用
+                    string query;
+                    if (hasManagementId)
+                    {
+                        query = @"
+                            SELECT * 
+                            FROM T_機械管理台帳 
+                            WHERE 機械管理ID = @MachineId";
+                    }
+                    else
+                    {
+                        // 機械管理IDが存在しない場合は製造番号で検索（後方互換性）
+                        query = @"
+                            SELECT * 
+                            FROM T_機械管理台帳 
+                            WHERE 製造番号 = @MachineId";
+                    }
                     
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
@@ -229,7 +347,7 @@ namespace SBOMSystemAPI.Controllers
                             }
                             else
                             {
-                                return NotFound(new { error = $"製造番号 {id} の機械が見つかりません。" });
+                                return NotFound(new { error = $"ID {id} の機械が見つかりません。" });
                             }
                         }
                     }
@@ -250,11 +368,24 @@ namespace SBOMSystemAPI.Controllers
                 {
                     await connection.OpenAsync();
                     
+                    // まず機械管理IDカラムが存在するか確認
+                    string checkColumnQuery = @"
+                        SELECT COUNT(*) 
+                        FROM INFORMATION_SCHEMA.COLUMNS 
+                        WHERE TABLE_NAME = 'T_機械管理台帳' 
+                        AND COLUMN_NAME = '機械管理ID'";
+                    
+                    bool hasManagementId = false;
+                    using (SqlCommand checkCommand = new SqlCommand(checkColumnQuery, connection))
+                    {
+                        hasManagementId = (int)await checkCommand.ExecuteScalarAsync() > 0;
+                    }
+                    
                     // 更新用のSQLを構築
                     var updateFields = new List<string>();
                     var parameters = new List<SqlParameter>();
                     
-                    // 製造番号は変更不可
+                    // IDパラメータを追加
                     parameters.Add(new SqlParameter("@MachineId", id));
                     
                     // 更新可能なフィールドのマッピング
@@ -358,10 +489,13 @@ namespace SBOMSystemAPI.Controllers
                         return BadRequest(new { error = "更新するフィールドがありません。" });
                     }
                     
+                    // WHERE句を構築（機械管理IDカラムの有無で切り替え）
+                    string whereClause = hasManagementId ? "WHERE 機械管理ID = @MachineId" : "WHERE 製造番号 = @MachineId";
+                    
                     string updateQuery = $@"
                         UPDATE T_機械管理台帳 
                         SET {string.Join(", ", updateFields)}
-                        WHERE 製造番号 = @MachineId";
+                        {whereClause}";
                     
                     using (SqlCommand command = new SqlCommand(updateQuery, connection))
                     {
@@ -375,7 +509,7 @@ namespace SBOMSystemAPI.Controllers
                         }
                         else
                         {
-                            return NotFound(new { error = $"製造番号 {id} の機械が見つかりません。" });
+                            return NotFound(new { error = $"ID {id} の機械が見つかりません。" });
                         }
                     }
                 }

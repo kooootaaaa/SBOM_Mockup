@@ -240,6 +240,7 @@ else
                     machine = new Machine
                     {
                         Id = GetStringValue(data, "製造番号"),
+                        ManagementId = data.ContainsKey("機械管理ID") ? GetStringValue(data, "機械管理ID") : null,
                         Model = GetStringValue(data, "型式"),
                         BranchNo = GetStringValue(data, "ItemSubCode"),
                         TypeName = GetStringValue(data, "機種名"),
@@ -449,12 +450,29 @@ else
 
     private void NavigateToPartsList()
     {
-        Nav.NavigateTo($"/machine/{MachineId}/parts");
+        var queryParams = new Dictionary<string, string>
+        {
+            ["serialno"] = Uri.EscapeDataString(machine.Id ?? ""),
+            ["model"] = Uri.EscapeDataString(machine.Model ?? ""),
+            ["typename"] = Uri.EscapeDataString(machine.TypeName ?? ""),
+            ["completion"] = machine.CompletionDate?.ToString("yyyy-MM-dd") ?? "",
+            ["location"] = Uri.EscapeDataString(machine.Location ?? ""),
+            ["status"] = Uri.EscapeDataString(machine.Status ?? ""),
+            ["management"] = Uri.EscapeDataString(machine.ManagementType ?? ""),
+            ["projectno"] = Uri.EscapeDataString(machine.ProjectNo ?? ""),
+            ["lotno"] = Uri.EscapeDataString(machine.LotNo ?? "")
+        };
+        
+        var queryString = string.Join("&", queryParams.Select(kv => $"{kv.Key}={kv.Value}"));
+        // 機械管理IDがある場合はそれを使用、ない場合は製造番号を使用
+        var machineIdParam = machine.ManagementId ?? MachineId;
+        Nav.NavigateTo($"/machine/{machineIdParam}/parts?{queryString}");
     }
 
     public class Machine
     {
         public string Id { get; set; } = "";
+        public string? ManagementId { get; set; }
         public string Model { get; set; } = "";
         public string BranchNo { get; set; } = "";
         public string TypeName { get; set; } = "";

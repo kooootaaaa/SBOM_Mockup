@@ -61,7 +61,7 @@
                 <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="@machine.CustomerSpec">@machine.CustomerSpec</td>
                 <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@FormatCompletionDate(machine.CompletionDate)</td>
                 <td>
-                    <a href="@($"/machine/{machine.Id}")" class="btn btn-primary btn-sm">詳細表示</a>
+                    <a href="@($"/machine/{machine.ManagementId ?? machine.Id}")" class="btn btn-primary btn-sm">詳細表示</a>
                 </td>
             </tr>
         }
@@ -140,6 +140,7 @@
                         machines.Add(new Machine
                         {
                             Id = GetStringValue(machineData, "製造番号"),
+                            ManagementId = GetNullableStringValue(machineData, "機械管理ID"),
                             CompletionDate = GetStringValue(machineData, "完成日"),
                             Model = GetStringValue(machineData, "型式"),
                             TypeName = GetStringValue(machineData, "機種名"),
@@ -185,6 +186,16 @@
             return value?.ToString() ?? "";
         }
         return "";
+    }
+    
+    private string? GetNullableStringValue(Dictionary<string, object> data, string key)
+    {
+        if (data.TryGetValue(key, out var value) && value != null)
+        {
+            var strValue = value.ToString();
+            return string.IsNullOrEmpty(strValue) ? null : strValue;
+        }
+        return null;
     }
     
     private void LoadSampleData()
@@ -241,6 +252,7 @@
     public class Machine
     {
         public string Id { get; set; } = "";
+        public string? ManagementId { get; set; }
         public string CompletionDate { get; set; } = "";
         public string Model { get; set; } = "";
         public string TypeName { get; set; } = "";
