@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMSystemAPI\\SBOMSystemAPI.csproj": {}
+    "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMsystemapi\\SBOMSystemAPI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMSystemAPI\\SBOMSystemAPI.csproj": {
+    "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMsystemapi\\SBOMSystemAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMSystemAPI\\SBOMSystemAPI.csproj",
+        "projectUniqueName": "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMsystemapi\\SBOMSystemAPI.csproj",
         "projectName": "SBOMSystemAPI",
-        "projectPath": "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMSystemAPI\\SBOMSystemAPI.csproj",
+        "projectPath": "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMsystemapi\\SBOMSystemAPI.csproj",
         "packagesPath": "C:\\Users\\k_yam\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMSystemAPI\\obj\\",
+        "outputPath": "C:\\Users\\k_yam\\Dropbox\\PC\\Desktop\\システム関連\\Study\\SBOM\\SBOMsystemapi\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\k_yam\\AppData\\Roaming\\NuGet\\NuGet.Config"

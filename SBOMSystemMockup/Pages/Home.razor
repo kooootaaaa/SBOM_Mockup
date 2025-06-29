@@ -52,7 +52,7 @@
             </div>
         </div>
         
-        <!-- Search Inputs -->
+        <!-- Search Inputs Row 1 -->
         <div class="row g-2 mb-2">
             <div class="col-md-3">
                 <label class="form-label text-muted small mb-1">シリーズ</label>
@@ -62,13 +62,50 @@
                     <option value="B">Bシリーズ</option>
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label text-muted small mb-1">型式</label>
                 <input class="form-control form-control-sm" placeholder="型式名で検索..." @bind="filterModel" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label text-muted small mb-1">製造番号</label>
                 <input class="form-control form-control-sm" placeholder="製造番号で検索..." @bind="filterId" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">機種名</label>
+                <input class="form-control form-control-sm" placeholder="機種名で検索..." @bind="filterTypeName" />
+            </div>
+        </div>
+        
+        <!-- Search Inputs Row 2 -->
+        <div class="row g-2 mb-2">
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">現在地</label>
+                <input class="form-control form-control-sm" placeholder="現在地で検索..." @bind="filterLocation" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">管理区分</label>
+                <select class="form-select form-select-sm" @bind="selectedManagementType">
+                    <option value="">すべて</option>
+                    <option value="新品">新品</option>
+                    <option value="中古">中古</option>
+                    <option value="デモ">デモ</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">預けNo.</label>
+                <input class="form-control form-control-sm" placeholder="預けNo.で検索..." @bind="filterDepositNo" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">メーカーOP</label>
+                <input class="form-control form-control-sm" placeholder="メーカーOPで検索..." @bind="filterMakerOption" />
+            </div>
+        </div>
+        
+        <!-- Search Inputs Row 3 -->
+        <div class="row g-2 mb-2">
+            <div class="col-md-3">
+                <label class="form-label text-muted small mb-1">客先仕様</label>
+                <input class="form-control form-control-sm" placeholder="客先仕様で検索..." @bind="filterCustomerSpec" />
             </div>
         </div>
         
@@ -225,6 +262,12 @@
     private string selectedSeries = "";
     private string filterModel = "";
     private string filterId = "";
+    private string filterTypeName = "";
+    private string filterLocation = "";
+    private string selectedManagementType = "";
+    private string filterDepositNo = "";
+    private string filterMakerOption = "";
+    private string filterCustomerSpec = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -235,7 +278,11 @@
     {
         try
         {
-            var response = await Http.GetAsync($"{apiBaseUrl}/Machine?page={currentPage}&pageSize={pageSize}");
+            // フィルタパラメータを構築
+            var queryParams = BuildQueryString();
+            var url = $"{apiBaseUrl}/Machine?page={currentPage}&pageSize={pageSize}{queryParams}";
+            
+            var response = await Http.GetAsync(url);
             
             if (response.IsSuccessStatusCode)
             {
@@ -247,24 +294,8 @@
                 
                 if (result != null)
                 {
-                    machines.Clear();
-                    foreach (var machineData in result.Machines)
-                    {
-                        machines.Add(new Machine
-                        {
-                            Id = GetStringValue(machineData, "製造番号"),
-                            ManagementId = GetNullableStringValue(machineData, "機械管理ID"),
-                            CompletionDate = GetStringValue(machineData, "完成日"),
-                            Model = GetStringValue(machineData, "型式"),
-                            TypeName = GetStringValue(machineData, "機種名"),
-                            Location = GetStringValue(machineData, "現所在地"),
-                            Status = GetStringValue(machineData, "機械状態"),
-                            DepositNo = GetStringValue(machineData, "預けNo"),
-                            ManagementType = GetStringValue(machineData, "管理区分"),
-                            MakerOption = GetStringValue(machineData, "メーカーオプション"),
-                            CustomerSpec = GetStringValue(machineData, "客先仕様")
-                        });
-                    }
+                    // ExtractMachinesFromApiResponseメソッドを使用して機械データを抽出
+                    machines = ExtractMachinesFromApiResponse(result);
                     
                     totalRecords = result.TotalRecords;
                     totalPages = result.TotalPages;
@@ -292,6 +323,27 @@
         }
     }
     
+    // クエリ文字列を構築するメソッド
+    private string BuildQueryString()
+    {
+        var parameters = GetFilterParameters();
+        var queryItems = new List<string>();
+        
+        foreach (var param in parameters)
+        {
+            if (param.Value is bool boolValue && boolValue)
+            {
+                queryItems.Add($"&{param.Key}=true");
+            }
+            else if (param.Value is string stringValue && !string.IsNullOrEmpty(stringValue))
+            {
+                queryItems.Add($"&{param.Key}={Uri.EscapeDataString(stringValue)}");
+            }
+        }
+        
+        return string.Join("", queryItems);
+    }
+    
     private string GetStringValue(Dictionary<string, object> data, string key)
     {
         if (data.TryGetValue(key, out var value))
@@ -309,6 +361,73 @@
             return string.IsNullOrEmpty(strValue) ? null : strValue;
         }
         return null;
+    }
+    
+    // 機械データから特定の項目を抽出するメソッド
+    public Dictionary<string, string?> ExtractMachineData(Machine machine)
+    {
+        return new Dictionary<string, string?>
+        {
+            ["製造番号"] = machine.Id,
+            ["機械管理ID"] = machine.ManagementId,
+            ["完成日"] = machine.CompletionDate,
+            ["型式"] = machine.Model,
+            ["機種名"] = machine.TypeName,
+            ["現所在地"] = machine.Location,
+            ["機械状態"] = machine.Status,
+            ["預けNo"] = machine.DepositNo,
+            ["管理区分"] = machine.ManagementType,
+            ["メーカーオプション"] = machine.MakerOption,
+            ["客先仕様"] = machine.CustomerSpec
+        };
+    }
+    
+    // API応答から機械データリストを抽出するメソッド
+    public List<Machine> ExtractMachinesFromApiResponse(ApiResponse response)
+    {
+        var extractedMachines = new List<Machine>();
+        
+        foreach (var machineData in response.Machines)
+        {
+            extractedMachines.Add(new Machine
+            {
+                Id = GetStringValue(machineData, "製造番号"),
+                ManagementId = GetNullableStringValue(machineData, "機械管理ID"),
+                CompletionDate = GetStringValue(machineData, "完成日"),
+                Model = GetStringValue(machineData, "型式"),
+                TypeName = GetStringValue(machineData, "機種名"),
+                Location = GetStringValue(machineData, "現所在地"),
+                Status = GetStringValue(machineData, "機械状態"),
+                DepositNo = GetStringValue(machineData, "預けNo"),
+                ManagementType = GetStringValue(machineData, "管理区分"),
+                MakerOption = GetStringValue(machineData, "メーカーオプション"),
+                CustomerSpec = GetStringValue(machineData, "客先仕様")
+            });
+        }
+        
+        return extractedMachines;
+    }
+    
+    // フィルタ条件から抽出パラメータを生成するメソッド
+    public Dictionary<string, object> GetFilterParameters()
+    {
+        var parameters = new Dictionary<string, object>();
+        
+        if (filterCompleted) parameters["completed"] = true;
+        if (filterUnshipped) parameters["unshipped"] = true;
+        if (filterInStock) parameters["inStock"] = true;
+        if (filterDemo) parameters["demo"] = true;
+        if (!string.IsNullOrEmpty(selectedSeries)) parameters["series"] = selectedSeries;
+        if (!string.IsNullOrEmpty(filterModel)) parameters["model"] = filterModel;
+        if (!string.IsNullOrEmpty(filterId)) parameters["id"] = filterId;
+        if (!string.IsNullOrEmpty(filterTypeName)) parameters["typeName"] = filterTypeName;
+        if (!string.IsNullOrEmpty(filterLocation)) parameters["location"] = filterLocation;
+        if (!string.IsNullOrEmpty(selectedManagementType)) parameters["managementType"] = selectedManagementType;
+        if (!string.IsNullOrEmpty(filterDepositNo)) parameters["depositNo"] = filterDepositNo;
+        if (!string.IsNullOrEmpty(filterMakerOption)) parameters["makerOption"] = filterMakerOption;
+        if (!string.IsNullOrEmpty(filterCustomerSpec)) parameters["customerSpec"] = filterCustomerSpec;
+        
+        return parameters;
     }
     
     private void LoadSampleData()
@@ -336,17 +455,36 @@
     private async Task ApplyFilter()
     {
         currentPage = 1; // フィルタ適用時は1ページ目に戻る
+        
+        // フィルタパラメータを含めてAPIを呼び出す
         await LoadMachinesFromDatabase();
         
-        filteredMachines = machines.Where(m =>
-            (!filterCompleted || m.Status.Contains("新品")) &&
-            (!filterUnshipped || m.Status.Contains("未出荷")) &&
-            (!filterInStock || m.Status.Contains("保留")) &&
-            (!filterDemo || m.Status.Contains("デモ")) &&
-            (string.IsNullOrEmpty(selectedSeries) || m.Model.StartsWith(selectedSeries)) &&
-            (string.IsNullOrEmpty(filterModel) || m.Model.Contains(filterModel)) &&
-            (string.IsNullOrEmpty(filterId) || m.Id.Contains(filterId))
-        ).ToList();
+        // APIがフィルタリングを行うため、ローカルでのフィルタリングは不要
+        // ただし、APIがフィルタリングをサポートしていない場合のフォールバック
+        if (string.IsNullOrEmpty(errorMessage))
+        {
+            // APIが正常に動作している場合は、APIのフィルタリング結果を使用
+            filteredMachines = machines.ToList();
+        }
+        else
+        {
+            // エラー時のローカルフィルタリング
+            filteredMachines = machines.Where(m =>
+                (!filterCompleted || m.Status.Contains("新品")) &&
+                (!filterUnshipped || m.Status.Contains("未出荷")) &&
+                (!filterInStock || m.Status.Contains("保留")) &&
+                (!filterDemo || m.Status.Contains("デモ")) &&
+                (string.IsNullOrEmpty(selectedSeries) || m.Model.StartsWith(selectedSeries)) &&
+                (string.IsNullOrEmpty(filterModel) || m.Model.Contains(filterModel)) &&
+                (string.IsNullOrEmpty(filterId) || m.Id.Contains(filterId)) &&
+                (string.IsNullOrEmpty(filterTypeName) || m.TypeName.Contains(filterTypeName)) &&
+                (string.IsNullOrEmpty(filterLocation) || m.Location.Contains(filterLocation)) &&
+                (string.IsNullOrEmpty(selectedManagementType) || m.ManagementType.Contains(selectedManagementType)) &&
+                (string.IsNullOrEmpty(filterDepositNo) || m.DepositNo.Contains(filterDepositNo)) &&
+                (string.IsNullOrEmpty(filterMakerOption) || m.MakerOption.Contains(filterMakerOption)) &&
+                (string.IsNullOrEmpty(filterCustomerSpec) || m.CustomerSpec.Contains(filterCustomerSpec))
+            ).ToList();
+        }
     }
 
     private async Task ClearFilter()
@@ -358,6 +496,12 @@
         selectedSeries = "";
         filterModel = "";
         filterId = "";
+        filterTypeName = "";
+        filterLocation = "";
+        selectedManagementType = "";
+        filterDepositNo = "";
+        filterMakerOption = "";
+        filterCustomerSpec = "";
         currentPage = 1;
         await LoadMachinesFromDatabase();
     }
