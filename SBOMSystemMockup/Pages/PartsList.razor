@@ -169,7 +169,7 @@
                 <label class="mb-0 ms-3"><input type="radio" name="viewMode" value="hierarchy" @onchange="@(() => viewMode = "hierarchy")" /> 階層表示</label>
                 <label class="mb-0 ms-3"><input type="radio" name="viewMode" value="expand" @onchange="@(() => viewMode = "expand")" /> 部品展開</label>
             </div>
-            <button class="btn btn-outline-secondary btn-compact" @onclick="TogglePartsDisplay">部品表示</button>
+            <button class="btn btn-success btn-compact" @onclick="TogglePartsDisplay">部品表示</button>
             <button class="btn btn-modern-primary btn-compact" @onclick="@(() => NavTo($"/machine/{MachineId}/partsfetch"))">部品情報取得画面を開く</button>
             <button class="btn btn-modern-primary btn-compact" @onclick="@(() => NavTo($"/machine/{MachineId}/partschange"))">部品変更画面を開く</button>
             <button class="btn btn-modern-primary btn-compact" @onclick="@(() => NavTo($"/machine/{MachineId}/setedit"))">セット品登録編集画面を開く</button>

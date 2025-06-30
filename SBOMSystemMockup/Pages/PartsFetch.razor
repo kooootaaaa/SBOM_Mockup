@@ -36,6 +36,38 @@
         height: 1rem;
         border-width: 0.2em;
     }
+    
+    .btn-modern-primary {
+        background: #0d6efd;
+        border: 1px solid #0d6efd;
+        color: white;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-modern-primary:hover {
+        background: #0b5ed7;
+        border-color: #0a58ca;
+        color: white;
+    }
+    
+    .btn-modern-secondary {
+        background: #6c757d;
+        border: 1px solid #6c757d;
+        color: white;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-modern-secondary:hover {
+        background: #5c636a;
+        border-color: #565e64;
+        color: white;
+    }
 </style>
 
 <h3>部品情報取得 <small class="text-muted">（画面No.4 - PartsFetch.razor）</small></h3>
@@ -61,7 +93,7 @@
     <label class="ms-3">日付: <input type="date" class="form-control d-inline w-auto" value="@completionDate" @onchange="@((ChangeEventArgs e) => completionDate = e.Value?.ToString() ?? "")" /></label>
     @if (showMachineSearchButton)
     {
-        <button class="btn btn-primary ms-3" @onclick="SearchMachineType" disabled="@(string.IsNullOrEmpty(model) || isLoading)">機種検索</button>
+        <button class="btn btn-modern-primary ms-3" @onclick="SearchMachineType" disabled="@(string.IsNullOrEmpty(model) || isLoading)">機種検索</button>
     }
     @if (isAutoSearching)
     {
@@ -70,9 +102,9 @@
             機種検索中...
         </span>
     }
-    <button class="btn btn-success ms-3" @onclick="FetchParts" disabled="@(selectedMachineTypeId == null || string.IsNullOrEmpty(completionDate) || isLoading)">部品情報取得</button>
-    <button class="btn btn-primary ms-3" @onclick="RegisterParts">取得結果登録</button>
-    <a class="btn btn-primary ms-3" href="/machine/@MachineId/parts">閉じる</a>
+    <button class="btn btn-modern-primary ms-3" @onclick="FetchParts" disabled="@(selectedMachineTypeId == null || string.IsNullOrEmpty(completionDate) || isLoading)">部品情報取得</button>
+    <button class="btn btn-modern-primary ms-3" @onclick="RegisterParts">取得結果登録</button>
+    <a class="btn btn-modern-secondary ms-3" href="/machine/@MachineId/parts">閉じる</a>
 </div>
 
 <!-- 機種選択モーダル -->
@@ -98,7 +130,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CancelMachineTypeSelection">キャンセル</button>
-                    <button type="button" class="btn btn-primary" @onclick="ConfirmMachineTypeSelection" disabled="@(selectedMachineTypeId == null)">確定</button>
+                    <button type="button" class="btn btn-modern-primary" @onclick="ConfirmMachineTypeSelection" disabled="@(selectedMachineTypeId == null)">確定</button>
                 </div>
             </div>
         </div>
@@ -158,7 +190,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" @onclick="ConfirmOptionSelection">確定</button>
+                    <button type="button" class="btn btn-modern-primary" @onclick="ConfirmOptionSelection">確定</button>
                 </div>
             </div>
         </div>
