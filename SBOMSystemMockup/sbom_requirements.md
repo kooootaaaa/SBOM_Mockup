@@ -3,7 +3,7 @@
 ## 1. システム概要
 
 ### 1.1 システム名
-SBOM（Software Bill of Materials）管理システム
+SBOM（Service Bill of Materials）管理システム
 
 ### 1.2 システム目的
 機械管理台帳におけるWeBOM情報から個体情報として部品構成を管理し、メンテナンス時の部品変更履歴追跡、セット品の階層管理を効率的に行うためのWebベースシステム
