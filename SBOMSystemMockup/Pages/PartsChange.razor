@@ -1,26 +1,624 @@
 @page "/machine/{MachineId}/partschange"
 @using Microsoft.AspNetCore.Components
+@using SBOMSystemMockup.Models
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
 
 <PageTitle>部品変更</PageTitle>
 
-<h1>部品変更</h1>
+<div class="container-fluid">
+    <h1>部品変更</h1>
 
-<div class="mb-3">
-    <label>変更前品番: <input class="form-control d-inline w-auto" /></label>
-    <label class="ms-3">変更後品番: <input class="form-control d-inline w-auto" /></label>
-    <label class="ms-3">変更後個数: <input type="number" class="form-control d-inline w-auto" /></label>
+    @if (machine != null)
+    {
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">個体情報</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>製造番号:</strong> @machine.製造番号
+                    </div>
+                    <div class="col-md-4">
+                        <strong>型式:</strong> @machine.型式
+                    </div>
+                    <div class="col-md-4">
+                        <strong>機種名:</strong> @machine.機種名
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">部品変更登録</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">改訂内容</label>
+                    <input type="text" class="form-control" @bind="changeRequest.改訂内容" placeholder="変更内容の概要" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">背景</label>
+                    <input type="text" class="form-control" @bind="changeRequest.背景" placeholder="変更の背景・理由" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">備考</label>
+                    <input type="text" class="form-control" @bind="changeRequest.備考" placeholder="その他備考" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">改訂担当者CODE</label>
+                    <input type="text" class="form-control" @bind="changeRequest.改訂担当者CODE" placeholder="担当者コード" />
+                </div>
+            </div>
+
+            <h6>変更明細</h6>
+            <div class="table-responsive mb-3">
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">変更種別</th>
+                            <th>変更前品番</th>
+                            <th>変更前品名</th>
+                            <th style="width: 80px;">変更前数</th>
+                            <th>変更後品番</th>
+                            <th>変更後品名</th>
+                            <th style="width: 80px;">変更後数</th>
+                            <th style="width: 80px;">互換</th>
+                            <th>変更事項</th>
+                            <th style="width: 50px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in changeItems)
+                        {
+                            <tr>
+                                <td>
+                                    <select class="form-select form-select-sm" @bind="item.変更種別">
+                                        <option value="">選択</option>
+                                        <option value="追加">追加</option>
+                                        <option value="削除">削除</option>
+                                        <option value="変更">変更</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" @bind="item.廃止品番" 
+                                               disabled="@(item.変更種別 == "追加")" />
+                                        <button class="btn btn-outline-secondary" type="button" 
+                                                @onclick="() => SelectParts(item, true)"
+                                                disabled="@(item.変更種別 == "追加")">
+                                            選択
+                                        </button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm" @bind="item.廃止品名" readonly />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" @bind="item.廃止個数" 
+                                           disabled="@(item.変更種別 == "追加")" />
+                                </td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" @bind="item.新品番"
+                                               disabled="@(item.変更種別 == "削除")" />
+                                        <button class="btn btn-outline-secondary" type="button" 
+                                                @onclick="() => SelectParts(item, false)"
+                                                disabled="@(item.変更種別 == "削除")">
+                                            選択
+                                        </button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm" @bind="item.新品名" readonly />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" @bind="item.新個数"
+                                           disabled="@(item.変更種別 == "削除")" />
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" @bind="item.互換">
+                                        <option value="">-</option>
+                                        <option value="互換">互換</option>
+                                        <option value="非互換">非互換</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm" @bind="item.変更事項" />
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => RemoveItem(item)">削除</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mb-3">
+                <button class="btn btn-secondary btn-sm" @onclick="AddItem">明細追加</button>
+            </div>
+
+            <div>
+                <button class="btn btn-primary me-2" @onclick="SaveChange" disabled="@isProcessing">
+                    @if (isProcessing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    保存
+                </button>
+                <a class="btn btn-secondary" href="/machine/@MachineId/parts">キャンセル</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">変更履歴</h5>
+        </div>
+        <div class="card-body">
+            @if (changeHistory == null)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (changeHistory.Count == 0)
+            {
+                <p class="text-muted">変更履歴がありません。</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>改訂No</th>
+                                <th>発行日</th>
+                                <th>改訂内容</th>
+                                <th>背景</th>
+                                <th>状態</th>
+                                <th>担当者</th>
+                                <th>承認日</th>
+                                <th>承認者</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var change in changeHistory)
+                            {
+                                <tr>
+                                    <td>@change.改訂No</td>
+                                    <td>@change.発行日?.ToString("yyyy/MM/dd")</td>
+                                    <td>@change.改訂内容</td>
+                                    <td>@change.背景</td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(change.改訂状態)">
+                                            @change.改訂状態
+                                        </span>
+                                    </td>
+                                    <td>@change.改訂担当者CODE</td>
+                                    <td>@change.承認日?.ToString("yyyy/MM/dd")</td>
+                                    <td>@change.承認者CODE</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" @onclick="() => ViewDetail(change.個体改訂ID)">
+                                            詳細
+                                        </button>
+                                        @if (change.改訂状態 == "編集中")
+                                        {
+                                            <button class="btn btn-sm btn-warning ms-1" @onclick="() => SubmitForApproval(change.個体改訂ID)">
+                                                承認依頼
+                                            </button>
+                                        }
+                                        @if (change.改訂状態 == "承認待ち")
+                                        {
+                                            <button class="btn btn-sm btn-success ms-1" @onclick="() => Approve(change.個体改訂ID)">
+                                                承認
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
 </div>
-<div class="mb-3">
-    <label>変更日: <input type="date" class="form-control d-inline w-auto" /></label>
-    <label class="ms-3">互換: <input class="form-control d-inline w-auto" /></label>
-    <label class="ms-3">背景: <input class="form-control d-inline w-auto" /></label>
-    <label class="ms-3">備考: <input class="form-control d-inline w-auto" /></label>
+
+<!-- 部品選択モーダル -->
+<div class="modal fade @(showPartsModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">部品選択</h5>
+                <button type="button" class="btn-close" @onclick="ClosePartsModal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" placeholder="品番または品名で検索" 
+                           @bind="partsSearchText" @bind:event="oninput" />
+                </div>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>品番</th>
+                                <th>品名</th>
+                                <th>選択</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var part in filteredParts)
+                            {
+                                <tr>
+                                    <td>@part.部品コード</td>
+                                    <td>@part.部品名</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" @onclick="() => SelectPartFromModal(part)">
+                                            選択
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-    <button class="btn btn-primary me-2">部品一覧に反映</button>
-    <a class="btn btn-secondary" href="/machine/@MachineId/parts">閉じる</a>
+
+<!-- 詳細表示モーダル -->
+<div class="modal fade @(showDetailModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">変更詳細</h5>
+                <button type="button" class="btn-close" @onclick="CloseDetailModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (selectedDetail != null)
+                {
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <strong>改訂No:</strong> @selectedDetail.改訂No
+                        </div>
+                        <div class="col-md-3">
+                            <strong>発行日:</strong> @selectedDetail.発行日?.ToString("yyyy/MM/dd")
+                        </div>
+                        <div class="col-md-3">
+                            <strong>状態:</strong> @selectedDetail.改訂状態
+                        </div>
+                        <div class="col-md-3">
+                            <strong>担当者:</strong> @selectedDetail.改訂担当者CODE
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>改訂内容:</strong> @selectedDetail.改訂内容
+                        </div>
+                        <div class="col-md-4">
+                            <strong>背景:</strong> @selectedDetail.背景
+                        </div>
+                        <div class="col-md-4">
+                            <strong>備考:</strong> @selectedDetail.備考
+                        </div>
+                    </div>
+                    
+                    <h6>変更明細</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>変更前品番</th>
+                                    <th>変更前品名</th>
+                                    <th>変更前数</th>
+                                    <th>変更後品番</th>
+                                    <th>変更後品名</th>
+                                    <th>変更後数</th>
+                                    <th>互換</th>
+                                    <th>変更事項</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (selectedDetail.部品明細 != null)
+                                {
+                                    @foreach (var item in selectedDetail.部品明細)
+                                    {
+                                        <tr>
+                                            <td>@item.改訂連番</td>
+                                            <td>@item.廃止品番</td>
+                                            <td>@item.廃止品名</td>
+                                            <td>@item.廃止個数</td>
+                                            <td>@item.新品番</td>
+                                            <td>@item.新品名</td>
+                                            <td>@item.新個数</td>
+                                            <td>@item.互換</td>
+                                            <td>@item.変更事項</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseDetailModal">閉じる</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
     [Parameter] public string? MachineId { get; set; }
-} 
+    
+    private MachineDetailModel? machine;
+    private List<PartsChangeMainModel>? changeHistory;
+    private PartsChangeRequestModel changeRequest = new() { 変更明細 = new List<PartsChangeItemModel>() };
+    private List<PartsChangeItemModel> changeItems = new();
+    private bool isProcessing = false;
+    
+    // Modal related
+    private bool showPartsModal = false;
+    private bool showDetailModal = false;
+    private PartsChangeItemModel? currentEditItem;
+    private bool isSelectingOldPart = false;
+    private string partsSearchText = "";
+    private List<PartsMasterModel> allParts = new();
+    private List<PartsMasterModel> filteredParts = new();
+    private PartsChangeMainModel? selectedDetail;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMachineInfo();
+        await LoadChangeHistory();
+        await LoadPartsMaster();
+        AddItem(); // Add initial empty row
+    }
+
+    private async Task LoadMachineInfo()
+    {
+        try
+        {
+            machine = await Http.GetFromJsonAsync<MachineDetailModel>($"api/Machine/{MachineId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading machine info: {ex.Message}");
+        }
+    }
+
+    private async Task LoadChangeHistory()
+    {
+        try
+        {
+            changeHistory = await Http.GetFromJsonAsync<List<PartsChangeMainModel>>($"api/PartsChange/{MachineId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading change history: {ex.Message}");
+            changeHistory = new List<PartsChangeMainModel>();
+        }
+    }
+
+    private async Task LoadPartsMaster()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Machine/fetch-parts", new { 型式 = machine?.型式 ?? "" });
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<PartsFetchResult>();
+                if (result?.Parts != null)
+                {
+                    allParts = result.Parts;
+                    filteredParts = allParts;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading parts master: {ex.Message}");
+        }
+    }
+
+    private void AddItem()
+    {
+        changeItems.Add(new PartsChangeItemModel());
+    }
+
+    private void RemoveItem(PartsChangeItemModel item)
+    {
+        changeItems.Remove(item);
+    }
+
+    private void SelectParts(PartsChangeItemModel item, bool isOldPart)
+    {
+        currentEditItem = item;
+        isSelectingOldPart = isOldPart;
+        partsSearchText = "";
+        FilterParts();
+        showPartsModal = true;
+    }
+
+    private void FilterParts()
+    {
+        if (string.IsNullOrWhiteSpace(partsSearchText))
+        {
+            filteredParts = allParts;
+        }
+        else
+        {
+            filteredParts = allParts.Where(p => 
+                p.部品コード?.Contains(partsSearchText, StringComparison.OrdinalIgnoreCase) == true ||
+                p.部品名?.Contains(partsSearchText, StringComparison.OrdinalIgnoreCase) == true
+            ).ToList();
+        }
+    }
+
+    private void SelectPartFromModal(PartsMasterModel part)
+    {
+        if (currentEditItem != null)
+        {
+            if (isSelectingOldPart)
+            {
+                currentEditItem.廃止部品ID = part.部品コード;
+                currentEditItem.廃止品番 = part.部品コード;
+                currentEditItem.廃止品名 = part.部品名;
+            }
+            else
+            {
+                currentEditItem.新部品ID = part.部品コード;
+                currentEditItem.新品番 = part.部品コード;
+                currentEditItem.新品名 = part.部品名;
+            }
+        }
+        ClosePartsModal();
+    }
+
+    private void ClosePartsModal()
+    {
+        showPartsModal = false;
+        currentEditItem = null;
+    }
+
+    private async Task SaveChange()
+    {
+        if (changeItems.Count == 0 || changeItems.All(c => string.IsNullOrWhiteSpace(c.変更種別)))
+        {
+            return;
+        }
+
+        isProcessing = true;
+        try
+        {
+            changeRequest.個体ID = MachineId;
+            changeRequest.変更明細 = changeItems.Where(c => !string.IsNullOrWhiteSpace(c.変更種別)).ToList();
+            
+            var response = await Http.PostAsJsonAsync("api/PartsChange", changeRequest);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadChangeHistory();
+                // Reset form
+                changeRequest = new() { 変更明細 = new List<PartsChangeItemModel>() };
+                changeItems.Clear();
+                AddItem();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving change: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ViewDetail(string? revisionId)
+    {
+        if (string.IsNullOrEmpty(revisionId)) return;
+        
+        try
+        {
+            selectedDetail = await Http.GetFromJsonAsync<PartsChangeMainModel>($"api/PartsChange/detail/{revisionId}");
+            showDetailModal = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading detail: {ex.Message}");
+        }
+    }
+
+    private void CloseDetailModal()
+    {
+        showDetailModal = false;
+        selectedDetail = null;
+    }
+
+    private async Task SubmitForApproval(string? revisionId)
+    {
+        if (string.IsNullOrEmpty(revisionId)) return;
+        
+        try
+        {
+            var request = new UpdateStatusRequestModel { 改訂状態 = "承認待ち" };
+            var response = await Http.PutAsJsonAsync($"api/PartsChange/{revisionId}/status", request);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadChangeHistory();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating status: {ex.Message}");
+        }
+    }
+
+    private async Task Approve(string? revisionId)
+    {
+        if (string.IsNullOrEmpty(revisionId)) return;
+        
+        try
+        {
+            var request = new UpdateStatusRequestModel 
+            { 
+                改訂状態 = "承認済み",
+                承認者CODE = "ADMIN" // TODO: Get from current user
+            };
+            var response = await Http.PutAsJsonAsync($"api/PartsChange/{revisionId}/status", request);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadChangeHistory();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error approving: {ex.Message}");
+        }
+    }
+
+    private string GetStatusBadgeClass(string? status)
+    {
+        return status switch
+        {
+            "編集中" => "bg-secondary",
+            "承認待ち" => "bg-warning",
+            "承認済み" => "bg-success",
+            "完了" => "bg-info",
+            _ => "bg-light"
+        };
+    }
+
+    // Additional models for UI
+    public class MachineDetailModel
+    {
+        public string? 製造番号 { get; set; }
+        public string? 型式 { get; set; }
+        public string? 機種名 { get; set; }
+    }
+
+    public class PartsMasterModel
+    {
+        public string? 部品コード { get; set; }
+        public string? 部品名 { get; set; }
+    }
+
+    public class PartsFetchResult
+    {
+        public List<PartsMasterModel>? Parts { get; set; }
+    }
+}
