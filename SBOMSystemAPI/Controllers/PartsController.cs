@@ -176,5 +176,131 @@ namespace SBOMSystemAPI.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> RegisterIndividualParts([FromBody] IndividualPartsRegisterRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                using (SqlTransaction transaction = connection.BeginTransaction())
+                {
+                    try
+                    {
+                        var now = DateTime.Now;
+                        int registeredPartsCount = 0;
+                        int registeredChildRelationsCount = 0;
+
+                        // 1. 既存の個体部品データを廃止（廃止日を設定）
+                        string deletePartsQuery = @"
+                            UPDATE T_個体部品サブ 
+                            SET 廃止日 = @Now 
+                            WHERE 機械管理ID = @MachineId AND 廃止日 IS NULL";
+
+                        using (SqlCommand deletePartsCmd = new SqlCommand(deletePartsQuery, connection, transaction))
+                        {
+                            deletePartsCmd.Parameters.AddWithValue("@Now", now);
+                            deletePartsCmd.Parameters.AddWithValue("@MachineId", request.MachineId);
+                            await deletePartsCmd.ExecuteNonQueryAsync();
+                        }
+
+                        // 2. 既存の個体部品子部品データを廃止
+                        string deleteChildPartsQuery = @"
+                            UPDATE T_個体部品子部品サブ 
+                            SET 廃止日 = @Now 
+                            WHERE 機械管理ID = @MachineId AND 廃止日 IS NULL";
+
+                        using (SqlCommand deleteChildPartsCmd = new SqlCommand(deleteChildPartsQuery, connection, transaction))
+                        {
+                            deleteChildPartsCmd.Parameters.AddWithValue("@Now", now);
+                            deleteChildPartsCmd.Parameters.AddWithValue("@MachineId", request.MachineId);
+                            await deleteChildPartsCmd.ExecuteNonQueryAsync();
+                        }
+
+                        // 3. T_個体部品サブに最上位部品を登録
+                        if (request.DirectParts.Count > 0)
+                        {
+                            string insertPartsQuery = @"
+                                INSERT INTO T_個体部品サブ
+                                (個体部品ID, 個体ID, 機械管理ID, 部品ID, 個体IDごと連番, 個数, 登録日)
+                                VALUES
+                                (@個体部品ID, @個体ID, @機械管理ID, @部品ID, @個体IDごと連番, @個数, @登録日)";
+
+                            foreach (var part in request.DirectParts)
+                            {
+                                // 個体部品ID = 機械管理ID-部品ID-連番(00形式)
+                                string 個体部品ID = $"{request.MachineId}-{part.PartId}-{part.SequenceNo:D2}";
+
+                                using (SqlCommand insertPartsCmd = new SqlCommand(insertPartsQuery, connection, transaction))
+                                {
+                                    insertPartsCmd.Parameters.AddWithValue("@個体部品ID", 個体部品ID);
+                                    insertPartsCmd.Parameters.AddWithValue("@個体ID", DBNull.Value);
+                                    insertPartsCmd.Parameters.AddWithValue("@機械管理ID", request.MachineId);
+                                    insertPartsCmd.Parameters.AddWithValue("@部品ID", part.PartId);
+                                    insertPartsCmd.Parameters.AddWithValue("@個体IDごと連番", (short)part.SequenceNo);
+                                    insertPartsCmd.Parameters.AddWithValue("@個数", (short)part.Quantity);
+                                    insertPartsCmd.Parameters.AddWithValue("@登録日", now);
+
+                                    await insertPartsCmd.ExecuteNonQueryAsync();
+                                    registeredPartsCount++;
+                                }
+                            }
+                        }
+
+                        // 4. T_個体部品子部品サブに親子関係を登録
+                        if (request.ChildRelations.Count > 0)
+                        {
+                            string insertChildQuery = @"
+                                INSERT INTO T_個体部品子部品サブ
+                                (親子ID, 個体ID, 機械管理ID, 親部品コード, 子部品コード, 連番, 個数, 登録日)
+                                VALUES
+                                (@親子ID, @個体ID, @機械管理ID, @親部品コード, @子部品コード, @連番, @個数, @登録日)";
+
+                            foreach (var childRelation in request.ChildRelations)
+                            {
+                                // 親子ID = 機械管理ID-親部品コード-子部品コード-連番(00形式)
+                                string 親子ID = $"{request.MachineId}-{childRelation.ParentPartCode}-{childRelation.ChildPartCode}-{childRelation.SequenceNo:D2}";
+
+                                using (SqlCommand insertChildCmd = new SqlCommand(insertChildQuery, connection, transaction))
+                                {
+                                    insertChildCmd.Parameters.AddWithValue("@親子ID", 親子ID);
+                                    insertChildCmd.Parameters.AddWithValue("@個体ID", DBNull.Value);
+                                    insertChildCmd.Parameters.AddWithValue("@機械管理ID", request.MachineId);
+                                    insertChildCmd.Parameters.AddWithValue("@親部品コード", childRelation.ParentPartCode);
+                                    insertChildCmd.Parameters.AddWithValue("@子部品コード", childRelation.ChildPartCode);
+                                    insertChildCmd.Parameters.AddWithValue("@連番", (short)childRelation.SequenceNo);
+                                    insertChildCmd.Parameters.AddWithValue("@個数", (short)childRelation.Quantity);
+                                    insertChildCmd.Parameters.AddWithValue("@登録日", now);
+
+                                    await insertChildCmd.ExecuteNonQueryAsync();
+                                    registeredChildRelationsCount++;
+                                }
+                            }
+                        }
+
+                        transaction.Commit();
+
+                        return Ok(new IndividualPartsRegisterResponse
+                        {
+                            Success = true,
+                            Message = "個体部品情報の登録が完了しました。",
+                            RegisteredPartsCount = registeredPartsCount,
+                            RegisteredChildRelationsCount = registeredChildRelationsCount,
+                            RegisteredAt = now
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        return BadRequest(new { error = $"登録処理でエラーが発生しました: {ex.Message}" });
+                    }
+                }
+            }
+        }
     }
 }

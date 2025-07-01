@@ -3,6 +3,8 @@
 @using System.Collections.Generic
 @using System.Linq
 @using System.Text.Json
+@using System.Net.Http.Json
+@using SBOMSystemMockup.Models
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @implements IDisposable
@@ -273,6 +275,136 @@
     </div>
 }
 
+@if (!string.IsNullOrEmpty(registerSuccessMessage))
+{
+    <div class="alert alert-success mt-3">
+        @registerSuccessMessage
+        <button type="button" class="btn-close float-end" @onclick="ClearSuccessMessage"></button>
+    </div>
+}
+
+<!-- 登録確認モーダル -->
+<div class="modal fade @(showRegisterConfirmModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">部品構成登録確認</h5>
+                <button type="button" class="btn-close" @onclick="CancelRegistration" disabled="@isRegisterProcessing"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">最上位部品</h6>
+                                <h4 class="text-primary">@totalPartsCount 件</h4>
+                                <small class="text-muted">機械に直接取り付けられる部品</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">親子関係</h6>
+                                <h4 class="text-info">@totalChildRelationsCount 件</h4>
+                                <small class="text-muted">セット品の階層構造</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (directPartsForRegistration.Count > 0)
+                {
+                    <h6>登録対象の最上位部品:</h6>
+                    <div class="table-responsive mb-3" style="max-height: 200px; overflow-y: auto;">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>品番</th>
+                                    <th>品名</th>
+                                    <th>数量</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var part in directPartsForRegistration)
+                                {
+                                    var partInfo = GetPartInfo(part.PartId);
+                                    <tr>
+                                        <td>@partInfo.PartNumber</td>
+                                        <td>@partInfo.PartName</td>
+                                        <td>@part.Quantity</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                @if (childRelationsForRegistration.Count > 0)
+                {
+                    <h6>登録対象の親子関係（最初の10件）:</h6>
+                    <div class="table-responsive mb-3" style="max-height: 200px; overflow-y: auto;">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>親部品（品番）</th>
+                                    <th>親部品（品名）</th>
+                                    <th>子部品（品番）</th>
+                                    <th>子部品（品名）</th>
+                                    <th>数量</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var relation in childRelationsForRegistration.Take(10))
+                                {
+                                    var parentInfo = GetPartInfo(relation.ParentPartCode);
+                                    var childInfo = GetPartInfo(relation.ChildPartCode);
+                                    <tr>
+                                        <td>@parentInfo.PartNumber</td>
+                                        <td>@parentInfo.PartName</td>
+                                        <td>@childInfo.PartNumber</td>
+                                        <td>@childInfo.PartName</td>
+                                        <td>@relation.Quantity</td>
+                                    </tr>
+                                }
+                                @if (childRelationsForRegistration.Count > 10)
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-muted text-center">...他 @(childRelationsForRegistration.Count - 10) 件</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    この操作により、機械管理ID「@MachineId」の既存の個体部品構成が更新されます。
+                </div>
+
+                @if (!string.IsNullOrEmpty(registerErrorMessage))
+                {
+                    <div class="alert alert-danger">
+                        @registerErrorMessage
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CancelRegistration" disabled="@isRegisterProcessing">
+                    キャンセル
+                </button>
+                <button type="button" class="btn btn-primary" @onclick="ConfirmRegistration" disabled="@isRegisterProcessing">
+                    @if (isRegisterProcessing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    登録実行
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
     [Parameter] public string? MachineId { get; set; }
@@ -308,6 +440,18 @@
     private bool showMachineSearchButton = true;
     private bool isAutoSearching = false;
     private System.Threading.Timer? debounceTimer;
+    
+    // 登録確認モーダル用
+    private bool showRegisterConfirmModal = false;
+    private bool isRegisterProcessing = false;
+    private string registerErrorMessage = "";
+    private string registerSuccessMessage = "";
+    private int totalPartsCount = 0;
+    private int totalChildRelationsCount = 0;
+    
+    // 登録データ
+    private List<IndividualPartItem> directPartsForRegistration = new List<IndividualPartItem>();
+    private List<IndividualPartChildItem> childRelationsForRegistration = new List<IndividualPartChildItem>();
     
     protected override async Task OnInitializedAsync()
     {
@@ -827,10 +971,247 @@
         }
     }
     
-    private void RegisterParts()
+    private async Task RegisterParts()
     {
-        // 登録処理は後で実装
-        // displayPartsに表示されている部品（選択されたオプションを含む）が登録対象
+        if (allParts.Count == 0)
+        {
+            errorMessage = "登録する部品がありません。";
+            return;
+        }
+
+        showRegisterConfirmModal = true;
+        
+        // 登録データを準備
+        await PrepareRegistrationData();
+    }
+
+    private async Task PrepareRegistrationData()
+    {
+        directPartsForRegistration.Clear();
+        childRelationsForRegistration.Clear();
+        
+        var sequenceCounter = 1;
+        var childSequenceCounter = 1;
+
+        // 最上位部品（Level = 0）のみをT_個体部品サブ用に収集
+        var topLevelParts = allParts.Where(p => p.Level == 0).ToList();
+        foreach (var part in topLevelParts)
+        {
+            directPartsForRegistration.Add(new IndividualPartItem
+            {
+                PartId = part.PartId.ToString("D7"),
+                Quantity = part.Quantity,
+                SequenceNo = sequenceCounter++
+            });
+        }
+
+        // まず、すべてのユニット・オプション部品の子部品を強制的に取得
+        await LoadAllChildPartsForRegistration();
+        
+        // その後で親子関係を収集
+        CollectAllChildRelations(ref childSequenceCounter);
+        
+        // 登録サマリーを更新
+        totalPartsCount = directPartsForRegistration.Count;
+        totalChildRelationsCount = childRelationsForRegistration.Count;
+        
+        Console.WriteLine($"最上位部品数: {totalPartsCount}, 親子関係数: {totalChildRelationsCount}");
+    }
+
+    private void CollectAllChildRelations(ref int sequenceCounter)
+    {
+        // allPartsを1つずつ確認し、子部品があるものをすべて収集
+        foreach (var part in allParts)
+        {
+            if (part.Children != null && part.Children.Count > 0)
+            {
+                Console.WriteLine($"部品{part.PartId}に{part.Children.Count}個の子部品があります");
+                
+                foreach (var child in part.Children)
+                {
+                    var parentCode = part.PartId.ToString("D7");
+                    var childCode = child.PartId.ToString("D7");
+                    
+                    childRelationsForRegistration.Add(new IndividualPartChildItem
+                    {
+                        ParentPartCode = parentCode,
+                        ChildPartCode = childCode,
+                        Quantity = child.Quantity,
+                        SequenceNo = sequenceCounter++
+                    });
+                    
+                    Console.WriteLine($"親子関係追加: {parentCode} -> {childCode} (数量: {child.Quantity})");
+                }
+            }
+        }
+    }
+
+    private async Task LoadAllChildPartsForRegistration()
+    {
+        Console.WriteLine("すべてのユニット・オプション部品の子部品を取得開始");
+        
+        // ユニット・オプション部品で、まだ子部品が読み込まれていないものを探す
+        var unloadedUnitParts = allParts.Where(p => p.IsUnit && !p.ChildrenLoaded).ToList();
+        
+        Console.WriteLine($"子部品未読み込みのユニット部品数: {unloadedUnitParts.Count}");
+        
+        foreach (var part in unloadedUnitParts)
+        {
+            Console.WriteLine($"部品{part.PartId}({part.PartNumber})の子部品を取得中...");
+            
+            try
+            {
+                var requestData = new
+                {
+                    ParentPartIds = new List<int> { part.PartId },
+                    TargetDate = completionDate
+                };
+                
+                var jsonContent = JsonSerializer.Serialize(requestData);
+                var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+                
+                var response = await Http.PostAsync($"{apiBaseUrl}/Machine/parts-children", content);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                    
+                    if (result != null && result.ContainsKey("childParts"))
+                    {
+                        var childPartsElement = (JsonElement)result["childParts"];
+                        
+                        if (childPartsElement.TryGetProperty(part.PartId.ToString(), out var childrenElement))
+                        {
+                            part.Children.Clear();
+                            
+                            foreach (var childElement in childrenElement.EnumerateArray())
+                            {
+                                var childPart = new Part
+                                {
+                                    PartId = GetIntFromJsonElement(childElement, "部品ID"),
+                                    PartNumber = childElement.GetProperty("品番").GetString() ?? "",
+                                    PartName = childElement.GetProperty("品名").GetString() ?? "",
+                                    Quantity = GetIntFromJsonElement(childElement, "個数") * part.Quantity,
+                                    Manufacturer = childElement.GetProperty("メーカー").GetString() ?? "",
+                                    Material = childElement.GetProperty("材質").GetString() ?? "",
+                                    Model = childElement.GetProperty("型式").GetString() ?? "",
+                                    Remarks = childElement.GetProperty("備考").GetString() ?? "",
+                                    IsUnit = childElement.GetProperty("IsUnit").GetBoolean(),
+                                    IsOptionUnit = childElement.GetProperty("IsOptionUnit").GetBoolean(),
+                                    Level = part.Level + 1,
+                                    Parent = part
+                                };
+                                
+                                part.Children.Add(childPart);
+                            }
+                            
+                            part.ChildrenLoaded = true;
+                            Console.WriteLine($"部品{part.PartId}に{part.Children.Count}個の子部品を読み込み完了");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"部品{part.PartId}の子部品取得エラー: {ex.Message}");
+            }
+        }
+        
+        Console.WriteLine("すべてのユニット・オプション部品の子部品取得完了");
+    }
+
+    private async Task ConfirmRegistration()
+    {
+        isRegisterProcessing = true;
+        registerErrorMessage = "";
+        
+        try
+        {
+            var requestData = new IndividualPartsRegisterRequest
+            {
+                MachineId = MachineId ?? "",
+                DirectParts = directPartsForRegistration,
+                ChildRelations = childRelationsForRegistration
+            };
+
+            var response = await Http.PostAsJsonAsync($"{apiBaseUrl}/Parts/register", requestData);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<IndividualPartsRegisterResponse>();
+                if (result?.Success == true)
+                {
+                    registerSuccessMessage = $"登録完了: 部品{result.RegisteredPartsCount}件、親子関係{result.RegisteredChildRelationsCount}件を登録しました。";
+                    showRegisterConfirmModal = false;
+                }
+                else
+                {
+                    registerErrorMessage = result?.Message ?? "登録に失敗しました。";
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                registerErrorMessage = $"登録エラー: {response.StatusCode} - {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            registerErrorMessage = $"登録処理中にエラーが発生しました: {ex.Message}";
+        }
+        finally
+        {
+            isRegisterProcessing = false;
+        }
+    }
+
+    private void CancelRegistration()
+    {
+        showRegisterConfirmModal = false;
+        registerErrorMessage = "";
+    }
+
+    private void ClearSuccessMessage()
+    {
+        registerSuccessMessage = "";
+    }
+
+    private (string PartNumber, string PartName) GetPartInfo(string partId)
+    {
+        // 7桁の0埋め文字列を数値に変換
+        if (int.TryParse(partId, out int id))
+        {
+            // 全ての部品（階層化されたものも含む）から検索
+            var part = FindPartInHierarchy(allParts, id);
+            if (part != null)
+            {
+                return (part.PartNumber ?? "", part.PartName ?? "");
+            }
+        }
+        return (partId, "部品情報不明");
+    }
+
+    private Part? FindPartInHierarchy(List<Part> parts, int partId)
+    {
+        foreach (var part in parts)
+        {
+            if (part.PartId == partId)
+            {
+                return part;
+            }
+            
+            // 子部品も再帰的に検索
+            var childPart = FindPartInHierarchy(part.Children, partId);
+            if (childPart != null)
+            {
+                return childPart;
+            }
+        }
+        return null;
     }
     
     // 部品行をレンダリングする再帰的メソッド
