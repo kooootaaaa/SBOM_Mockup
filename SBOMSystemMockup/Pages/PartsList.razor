@@ -549,7 +549,8 @@
                             OptionUnitFlag = optionUnitFlag,
                             IsUnit = unitType > 0,
                             IsOptionUnit = optionUnitFlag != 0, // 0以外（1または-1）をオプションとする
-                            Level = 0  // 最上位は階層0
+                            Level = 0,  // 最上位は階層0
+                            ChildrenLoaded = true  // 初期値を明示的にtrueに設定（子部品なしと仮定）
                         };
                         
                         Console.WriteLine($"  → IsUnit: {part.IsUnit}, IsOptionUnit: {part.IsOptionUnit}");
@@ -577,6 +578,9 @@
         }
     }
     
+    // 全ての親子関係データを保持（階層構築用）
+    private Dictionary<string, List<JsonElement>> allChildRelations = new Dictionary<string, List<JsonElement>>();
+    
     // T_個体部品子部品サブから子部品関係を設定
     private async Task LoadChildrenFromIndividualRelations(Dictionary<string, object> apiResponse)
     {
@@ -584,51 +588,41 @@
         
         if (apiResponse.TryGetValue("childRelations", out var childObj) && childObj is JsonElement childElement)
         {
-            // 親部品IDごとにグループ化
-            var childRelations = new Dictionary<string, List<JsonElement>>();
+            // 全ての親子関係データを保存
+            allChildRelations.Clear();
+            
+            Console.WriteLine($"childRelations配列のサイズ: {childElement.GetArrayLength()}");
             
             foreach (var relationElement in childElement.EnumerateArray())
             {
                 var parentId = GetStringFromJsonElement(relationElement, "親部品コード");
-                if (!childRelations.ContainsKey(parentId))
+                if (!allChildRelations.ContainsKey(parentId))
                 {
-                    childRelations[parentId] = new List<JsonElement>();
+                    allChildRelations[parentId] = new List<JsonElement>();
                 }
-                childRelations[parentId].Add(relationElement);
+                allChildRelations[parentId].Add(relationElement);
             }
             
-            // 各部品に子部品を設定
+            // 最上位部品（T_個体部品サブの部品）に対して、子部品が存在するかチェックのみ行う
             foreach (var part in allParts)
             {
-                if (childRelations.ContainsKey(part.PartId.ToString()))
+                if (allChildRelations.ContainsKey(part.PartId.ToString()))
                 {
-                    foreach (var relationElement in childRelations[part.PartId.ToString()])
-                    {
-                        var childUnitType = GetIntFromJsonElement(relationElement, "子ユニット種別");
-                        var childOptionUnitFlag = GetIntFromJsonElement(relationElement, "子オプションユニットFL");
-                        
-                        var childPart = new Part
-                        {
-                            PartId = GetIntFromJsonElement(relationElement, "子部品コード"),
-                            PartNumber = GetStringFromJsonElement(relationElement, "子品番"),
-                            PartName = GetStringFromJsonElement(relationElement, "子品名"),
-                            Quantity = Math.Max(1, GetIntFromJsonElement(relationElement, "個数")),
-                            Manufacturer = GetStringFromJsonElement(relationElement, "子メーカー"),
-                            Material = GetStringFromJsonElement(relationElement, "子材質"),
-                            Model = GetStringFromJsonElement(relationElement, "子型式"),
-                            Remarks = GetStringFromJsonElement(relationElement, "子備考"),
-                            UnitType = childUnitType,
-                            OptionUnitFlag = childOptionUnitFlag,
-                            IsUnit = childUnitType > 0,
-                            IsOptionUnit = childOptionUnitFlag != 0, // 0以外（1または-1）をオプションとする
-                            Level = part.Level + 1,
-                            Parent = part
-                        };
-                        part.Children.Add(childPart);
-                    }
-                    part.ChildrenLoaded = true;
+                    // 子部品が存在することを示すが、まだ読み込まない（展開時に読み込む）
+                    part.ChildrenLoaded = false; // 展開時に読み込むためfalse
+                    Console.WriteLine($"展開可能部品: {part.PartNumber} (部品ID: {part.PartId})");
+                }
+                else
+                {
+                    part.ChildrenLoaded = true; // 子部品がない場合はtrue
                 }
             }
+            
+            Console.WriteLine($"全部品数: {allParts.Count}, 親子関係数: {allChildRelations.Count}");
+        }
+        else
+        {
+            Console.WriteLine("childRelations データが見つからないか、配列ではありません");
         }
     }
     
@@ -724,20 +718,29 @@
         return displayParts.Skip(startIndex).Take(pageSize).ToList();
     }
     
-    // 画面4と同じ展開/折りたたみロジック
+    // 展開/折りたたみロジック（子部品がある場合のみ動作）
     private async Task ToggleExpand(Part part)
     {
-        if (!part.IsUnit)
+        Console.WriteLine($"ToggleExpand clicked: 部品ID={part.PartId}, 品番={part.PartNumber}");
+        Console.WriteLine($"  ChildrenLoaded={part.ChildrenLoaded}, IsLoading={part.IsLoading}, Children.Count={part.Children.Count}");
+        
+        // 子部品が存在しない場合は何もしない
+        if (!allChildRelations.ContainsKey(part.PartId.ToString()) && part.Children.Count == 0)
+        {
+            Console.WriteLine("  子部品が存在しないため、展開処理をスキップ");
             return;
+        }
         
         if (!part.ChildrenLoaded && !part.IsLoading)
         {
             // 子部品を初めて取得する場合
+            Console.WriteLine("  子部品を読み込み中...");
             await LoadChildParts(part);
         }
         else
         {
             // すでに取得済みの場合は展開状態を切り替え
+            Console.WriteLine($"  展開状態を切り替え: {part.IsExpanded} → {!part.IsExpanded}");
             part.IsExpanded = !part.IsExpanded;
             UpdateDisplayParts();
         }
@@ -754,8 +757,53 @@
 
         try
         {
-            // 既に初期読み込み時に全ての子部品関係は読み込み済みなので、
-            // ここではすでに設定されている子部品を表示するだけ
+            Console.WriteLine($"LoadChildParts for 部品ID: {part.PartId}, 品番: {part.PartNumber}");
+            
+            // allChildRelationsから子部品を構築
+            if (allChildRelations.ContainsKey(part.PartId.ToString()))
+            {
+                part.Children.Clear();
+                
+                foreach (var relationElement in allChildRelations[part.PartId.ToString()])
+                {
+                    var childUnitType = GetIntFromJsonElement(relationElement, "子ユニット種別");
+                    var childOptionUnitFlag = GetIntFromJsonElement(relationElement, "子オプションユニットFL");
+                    
+                    var childPart = new Part
+                    {
+                        PartId = GetIntFromJsonElement(relationElement, "子部品コード"),
+                        PartNumber = GetStringFromJsonElement(relationElement, "子品番"),
+                        PartName = GetStringFromJsonElement(relationElement, "子品名"),
+                        Quantity = Math.Max(1, GetIntFromJsonElement(relationElement, "個数")),
+                        Manufacturer = GetStringFromJsonElement(relationElement, "子メーカー"),
+                        Material = GetStringFromJsonElement(relationElement, "子材質"),
+                        Model = GetStringFromJsonElement(relationElement, "子型式"),
+                        Remarks = GetStringFromJsonElement(relationElement, "子備考"),
+                        UnitType = childUnitType,
+                        OptionUnitFlag = childOptionUnitFlag,
+                        IsUnit = childUnitType > 0,
+                        IsOptionUnit = childOptionUnitFlag != 0,
+                        Level = part.Level + 1,
+                        Parent = part
+                    };
+                    
+                    // 子部品にも孫部品が存在するかチェック
+                    if (allChildRelations.ContainsKey(childPart.PartId.ToString()))
+                    {
+                        childPart.ChildrenLoaded = false; // 孫部品がある場合は展開可能
+                    }
+                    else
+                    {
+                        childPart.ChildrenLoaded = true; // 孫部品がない場合
+                    }
+                    
+                    part.Children.Add(childPart);
+                    Console.WriteLine($"  子部品追加: {childPart.PartNumber}, 孫あり: {!childPart.ChildrenLoaded}");
+                }
+                
+                Console.WriteLine($"子部品数: {part.Children.Count}");
+            }
+
             part.IsExpanded = true;
             part.ChildrenLoaded = true;
             UpdateDisplayParts();
@@ -825,6 +873,9 @@
     // 画面4と同じRenderPartRowメソッド
     private RenderFragment RenderPartRow(Part part) => builder =>
     {
+        // デバッグ情報を出力
+        Console.WriteLine($"RenderPartRow: {part.PartNumber} - ChildrenLoaded={part.ChildrenLoaded}, Children.Count={part.Children.Count}, 条件=!{part.ChildrenLoaded} || {part.Children.Count} > 0 = {!part.ChildrenLoaded || part.Children.Count > 0}");
+        
         // 行の開始
         builder.OpenElement(0, "tr");
         builder.AddAttribute(1, "class", part.Level > 0 ? "child-part" : "");
@@ -833,7 +884,9 @@
         builder.OpenElement(2, "td");
         builder.AddAttribute(3, "style", $"padding-left: {part.Level * 20}px;");
         
-        if (part.IsUnit)
+        // 子部品が存在する場合に展開ボタンを表示
+        // 画面4と同じロジック：ユニット（IsUnit = true）または既に子部品がある場合
+        if (part.IsUnit || part.Children.Count > 0)
         {
             builder.OpenElement(4, "span");
             builder.AddAttribute(5, "class", "cursor-pointer");
