@@ -128,12 +128,25 @@
             <h6 class="mb-0 text-secondary fw-semibold small">
                 <i class="bi bi-list-ul me-1"></i>機械一覧
             </h6>
-            @if (totalRecords > 0)
-            {
-                <small class="text-muted">
-                    @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, totalRecords)) / @totalRecords 件表示
-                </small>
-            }
+            <div class="d-flex align-items-center gap-3">
+                @if (totalRecords > 0)
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label text-muted small mb-0">表示件数:</label>
+                        <select class="form-select form-select-sm" style="width: auto;" value="@pageSize" @onchange="OnPageSizeChanged">
+                            <option value="5">5件</option>
+                            <option value="10">10件</option>
+                            <option value="15">15件</option>
+                            <option value="20">20件</option>
+                            <option value="30">30件</option>
+                            <option value="50">50件</option>
+                        </select>
+                    </div>
+                    <small class="text-muted">
+                        @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, totalRecords)) / @totalRecords 件表示
+                    </small>
+                }
+            </div>
         </div>
     </div>
     <div class="table-responsive">
@@ -248,7 +261,7 @@
     private List<Machine> machines = new();
     private List<Machine> filteredMachines = new();
     private int currentPage = 1;
-    private int pageSize = 10;
+    private int pageSize = 15;
     private int totalRecords = 0;
     private int totalPages = 0;
     private string errorMessage = "";
@@ -439,6 +452,16 @@
         if (page >= 1 && page <= totalPages)
         {
             currentPage = page;
+            await LoadMachinesFromDatabase();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newPageSize))
+        {
+            pageSize = newPageSize;
+            currentPage = 1; // ページサイズ変更時は1ページ目に戻る
             await LoadMachinesFromDatabase();
         }
     }
