@@ -7,7 +7,7 @@
 
 -- T_個体部品子部品サブテーブル作成
 CREATE TABLE T_個体部品子部品サブ (
-    親子ID nvarchar(26) NOT NULL,      -- 機械管理ID-親部品コード-子部品コード-連番 例: 1510006-P001-P010-01
+    親子ID nvarchar(50) NOT NULL,      -- 機械管理ID-親部品コード-子部品コード-連番 例: 1510006-P001-P010-01
     個体ID nvarchar(20) NULL,           -- 将来用、現状NULL
     機械管理ID nvarchar(20) NOT NULL,
     親部品コード nvarchar(8) NOT NULL,

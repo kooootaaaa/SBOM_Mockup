@@ -82,19 +82,46 @@ SBOM（Service Bill of Materials）管理システム
 - `GET /api/Machine/by-serial/{serialNumber}` - 製造番号検索
 - `PUT /api/Machine/{id}` - 機械情報更新
 
-### 2.3 画面No.3: 個体部品一覧画面 ✅**基本機能実装済み**
+### 2.3 画面No.3: 個体部品一覧画面 ✅**表示モード改修実装完了**
 
 **実装済み機能**
 - ヘッダー情報表示（製造番号、型式、機種名等）
-- 3つの表示モード切替（通常、階層表示、部品展開）
+- **2つの表示モード切替（階層表示、集計表示）** ✅**新規改修**
 - 部品一覧の表示/非表示切替
 - 各種画面への遷移ボタン
-- サンプルデータによる階層構造実装
+- **共通ツリー表示コンポーネント化** ✅**新規実装**
+
+**表示モード詳細仕様**
+
+#### 階層表示モード
+- ツリー構造による部品の親子関係表示
+- 展開/折りたたみ機能（▶/▼アイコン）
+- 階層レベルに応じたインデント表示
+- 遅延読み込み（子部品の動的取得）
+- 各部品の直接数量表示
+
+#### 集計表示モード ✅**新規実装**
+- 最下位部品（子部品を持たない部品）のみ表示
+- 同一部品の全階層での数量合計
+- 在庫管理・発注業務向けの集約表示
+- 部品コード順/数量順ソート機能
+- 使用経路の詳細表示
+
+**共通コンポーネント構成** ✅**新規実装**
+- `Components/PartsTreeView.razor` - 階層表示用コンポーネント
+- `Components/PartsTreeNode.razor` - 再帰的ツリーノード
+- `Components/PartsSummaryView.razor` - 集計表示用コンポーネント
+- `Models/PartsDisplayModels.cs` - 共通データモデル
+
+**API連携**
+- `GET /api/Parts/individual/{machineId}` - 個体部品データ取得（T_個体部品サブテーブル）
+- `GET /api/Parts/hierarchy/{machineId}` - 親子関係データ取得（T_個体部品子部品サブテーブル）
+- `POST /api/Parts/summary/{machineId}` - 集計データ取得
 
 **今後の改善点**
-- 実際のデータベース連携（T_個体部品サブテーブル）
-- 階層表示の動的生成（T_個体部品子部品サブテーブルを使用）
-- 部品展開時の数量合算機能
+- エクスポート機能（CSV/Excel）
+- 部品検索・フィルタリング機能
+- パフォーマンス最適化（仮想スクロール）
 
 ### 2.4 画面No.4: 部品情報取得画面 ✅**高度実装完了**
 
@@ -107,6 +134,7 @@ SBOM（Service Bill of Materials）管理システム
 - ページネーション対応結果表示
 - フォーム情報の自動反映（個体情報から）
 - **ユニット・オプションの子部品ツリー表示機能** ✅**新規実装**
+- **共通ツリー表示コンポーネント使用** ✅**改修実装**
 
 **ツリー表示機能詳細**
 - ユニット・オプション部品の展開/折りたたみ機能
@@ -115,6 +143,7 @@ SBOM（Service Bill of Materials）管理システム
 - 数量の自動計算（親部品数量 × 子部品数量）
 - T_部品子部品サブテーブルからの動的データ取得
 - 循環参照防止とパフォーマンス最適化
+- **画面No.3との共通コンポーネント使用により重複コード削除** ✅**改修実装**
 
 **API連携**
 - `GET /api/Machine/search-model/{modelName}` - 機種検索
@@ -352,6 +381,56 @@ SBOM（Service Bill of Materials）管理システム
 **課題**: 設定・接続情報のハードコーディング
 **対策**: 設定ファイル分離、環境変数活用
 
+### 8.4 コード重複解決課題 ✅**解決済み**
+**課題**: 画面No.3と画面No.4のツリー表示機能の重複実装
+**対策**: 共通コンポーネント化による重複コード削除
+
+#### 共通コンポーネント設計仕様
+**データモデル統一**
+```csharp
+// Models/PartsDisplayModels.cs
+public class PartNode
+{
+    public string PartId { get; set; }
+    public string PartNumber { get; set; }
+    public string PartName { get; set; }
+    public int Quantity { get; set; }
+    public List<PartNode> Children { get; set; }
+    public bool IsExpanded { get; set; }
+    public bool IsLoading { get; set; }
+    public bool HasChildren { get; set; }
+    public int Level { get; set; }
+}
+
+public class PartSummary
+{
+    public string PartId { get; set; }
+    public string PartNumber { get; set; }
+    public string PartName { get; set; }
+    public int TotalQuantity { get; set; }
+    public List<string> UsagePaths { get; set; }
+}
+```
+
+**コンポーネント設計**
+- **PartsTreeView.razor**: 階層表示の親コンポーネント
+  - プロパティ: List<PartNode> Parts, EventCallback展開/折りたたみ
+  - 機能: ツリー全体の制御、状態管理
+  
+- **PartsTreeNode.razor**: 再帰的ツリーノードコンポーネント
+  - プロパティ: PartNode Node, int Level, EventCallback子部品取得
+  - 機能: 単一ノードの表示、展開/折りたたみ、遅延読み込み
+  
+- **PartsSummaryView.razor**: 集計表示コンポーネント
+  - プロパティ: List<PartSummary> SummaryParts, SortMode
+  - 機能: 集計データの表示、ソート、フィルタリング
+
+**メリット**
+- コードの一元管理と保守性向上
+- 機能の一貫性確保
+- 新規画面での再利用容易性
+- テスト効率の向上
+
 ## 9. 更新履歴
 
 | 日付 | バージョン | 更新者 | 更新内容 |
@@ -362,9 +441,10 @@ SBOM（Service Bill of Materials）管理システム
 | 2025-06-30 | 4.0 | システム担当 | 画面No.6部品変更画面の実装完了を反映 |
 | 2025-07-01 | 4.1 | システム担当 | T_個体部品サブ、T_個体部品子部品サブテーブル実装完了を反映 |
 | 2025-07-02 | 4.2 | システム担当 | 画面No.1検索機能の実装詳細とSqlParameterエラー修正を反映 |
+| 2025-07-02 | 4.3 | Claude | 画面No.3表示モード改修（階層表示・集計表示）と共通コンポーネント化要件追加 |
 
 ---
 
-**現在の実装完成度: 約85%**
+**現在の実装完成度: 約88%**
 
 主要6画面（No.1-6）が実装完了。画面No.4にはツリー表示機能、画面No.6には承認ワークフロー機能を実装。残り1画面（No.7）の実装により、完全なSBOM管理システムとして稼働可能。

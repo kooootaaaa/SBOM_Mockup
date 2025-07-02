@@ -856,7 +856,7 @@
                             PartId = GetIntFromJsonElement(partElement, "部品ID"),
                             PartNumber = partElement.GetProperty("品番").GetString() ?? "",
                             PartName = partElement.GetProperty("品名").GetString() ?? "",
-                            Quantity = GetIntFromJsonElement(partElement, "個数"),
+                            Quantity = Math.Max(1, GetIntFromJsonElement(partElement, "個数")),
                             Manufacturer = partElement.GetProperty("メーカー").GetString() ?? "",
                             Material = partElement.GetProperty("材質").GetString() ?? "",
                             Model = partElement.GetProperty("型式").GetString() ?? "",
@@ -1000,7 +1000,7 @@
             directPartsForRegistration.Add(new IndividualPartItem
             {
                 PartId = part.PartId.ToString("D7"),
-                Quantity = part.Quantity,
+                Quantity = Math.Max(1, part.Quantity),
                 SequenceNo = sequenceCounter++
             });
         }
@@ -1036,7 +1036,7 @@
                     {
                         ParentPartCode = parentCode,
                         ChildPartCode = childCode,
-                        Quantity = child.Quantity,
+                        Quantity = Math.Max(1, child.Quantity),
                         SequenceNo = sequenceCounter++
                     });
                     
@@ -1095,7 +1095,7 @@
                                     PartId = GetIntFromJsonElement(childElement, "部品ID"),
                                     PartNumber = childElement.GetProperty("品番").GetString() ?? "",
                                     PartName = childElement.GetProperty("品名").GetString() ?? "",
-                                    Quantity = GetIntFromJsonElement(childElement, "個数") * part.Quantity,
+                                    Quantity = Math.Max(1, GetIntFromJsonElement(childElement, "個数")),
                                     Manufacturer = childElement.GetProperty("メーカー").GetString() ?? "",
                                     Material = childElement.GetProperty("材質").GetString() ?? "",
                                     Model = childElement.GetProperty("型式").GetString() ?? "",
@@ -1388,7 +1388,7 @@
                                 PartId = GetIntFromJsonElement(childElement, "部品ID"),
                                 PartNumber = childElement.GetProperty("品番").GetString() ?? "",
                                 PartName = childElement.GetProperty("品名").GetString() ?? "",
-                                Quantity = GetIntFromJsonElement(childElement, "個数") * part.Quantity, // 親の数量を掛ける
+                                Quantity = Math.Max(1, GetIntFromJsonElement(childElement, "個数")), // 最小値1を保証
                                 Manufacturer = childElement.GetProperty("メーカー").GetString() ?? "",
                                 Material = childElement.GetProperty("材質").GetString() ?? "",
                                 Model = childElement.GetProperty("型式").GetString() ?? "",
