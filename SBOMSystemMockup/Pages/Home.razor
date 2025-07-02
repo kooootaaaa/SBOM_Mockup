@@ -326,20 +326,32 @@
     // クエリ文字列を構築するメソッド
     private string BuildQueryString()
     {
-        var parameters = GetFilterParameters();
         var queryItems = new List<string>();
         
-        foreach (var param in parameters)
+        // 機械状態のフィルタを構築
+        var statusFilters = new List<string>();
+        if (filterCompleted) statusFilters.Add("完成");
+        if (filterUnshipped) statusFilters.Add("未出荷");
+        if (filterInStock) statusFilters.Add("保留");
+        if (filterDemo) statusFilters.Add("デモ機");
+        
+        // 最初の該当する状態を使用（APIは単一の状態のみ受け付ける）
+        if (statusFilters.Count > 0)
         {
-            if (param.Value is bool boolValue && boolValue)
-            {
-                queryItems.Add($"&{param.Key}=true");
-            }
-            else if (param.Value is string stringValue && !string.IsNullOrEmpty(stringValue))
-            {
-                queryItems.Add($"&{param.Key}={Uri.EscapeDataString(stringValue)}");
-            }
+            queryItems.Add($"&status={Uri.EscapeDataString(statusFilters[0])}");
         }
+        
+        // その他のフィルタパラメータ
+        if (!string.IsNullOrEmpty(filterModel))
+            queryItems.Add($"&model={Uri.EscapeDataString(filterModel)}");
+        if (!string.IsNullOrEmpty(filterTypeName))
+            queryItems.Add($"&typeName={Uri.EscapeDataString(filterTypeName)}");
+        if (!string.IsNullOrEmpty(filterId))
+            queryItems.Add($"&serialNumber={Uri.EscapeDataString(filterId)}");
+        if (!string.IsNullOrEmpty(filterLocation))
+            queryItems.Add($"&location={Uri.EscapeDataString(filterLocation)}");
+        if (!string.IsNullOrEmpty(selectedManagementType))
+            queryItems.Add($"&managementType={Uri.EscapeDataString(selectedManagementType)}");
         
         return string.Join("", queryItems);
     }
@@ -408,27 +420,6 @@
         return extractedMachines;
     }
     
-    // フィルタ条件から抽出パラメータを生成するメソッド
-    public Dictionary<string, object> GetFilterParameters()
-    {
-        var parameters = new Dictionary<string, object>();
-        
-        if (filterCompleted) parameters["completed"] = true;
-        if (filterUnshipped) parameters["unshipped"] = true;
-        if (filterInStock) parameters["inStock"] = true;
-        if (filterDemo) parameters["demo"] = true;
-        if (!string.IsNullOrEmpty(selectedSeries)) parameters["series"] = selectedSeries;
-        if (!string.IsNullOrEmpty(filterModel)) parameters["model"] = filterModel;
-        if (!string.IsNullOrEmpty(filterId)) parameters["id"] = filterId;
-        if (!string.IsNullOrEmpty(filterTypeName)) parameters["typeName"] = filterTypeName;
-        if (!string.IsNullOrEmpty(filterLocation)) parameters["location"] = filterLocation;
-        if (!string.IsNullOrEmpty(selectedManagementType)) parameters["managementType"] = selectedManagementType;
-        if (!string.IsNullOrEmpty(filterDepositNo)) parameters["depositNo"] = filterDepositNo;
-        if (!string.IsNullOrEmpty(filterMakerOption)) parameters["makerOption"] = filterMakerOption;
-        if (!string.IsNullOrEmpty(filterCustomerSpec)) parameters["customerSpec"] = filterCustomerSpec;
-        
-        return parameters;
-    }
     
     private void LoadSampleData()
     {

@@ -173,7 +173,15 @@ namespace SBOMSystemAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetMachines([FromQuery] int page = 1, [FromQuery] int pageSize = 15)
+        public async Task<IActionResult> GetMachines(
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 15,
+            [FromQuery] string? status = null,
+            [FromQuery] string? model = null,
+            [FromQuery] string? typeName = null,
+            [FromQuery] string? serialNumber = null,
+            [FromQuery] string? location = null,
+            [FromQuery] string? managementType = null)
         {
             try
             {
@@ -181,23 +189,75 @@ namespace SBOMSystemAPI.Controllers
                 {
                     await connection.OpenAsync();
                     
+                    // WHERE句の構築
+                    var whereConditions = new List<string>();
+                    var parameters = new List<SqlParameter>();
+                    
+                    if (!string.IsNullOrWhiteSpace(status))
+                    {
+                        whereConditions.Add("機械状態 = @Status");
+                        parameters.Add(new SqlParameter("@Status", status));
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(model))
+                    {
+                        whereConditions.Add("型式 LIKE @Model");
+                        parameters.Add(new SqlParameter("@Model", $"%{model}%"));
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(typeName))
+                    {
+                        whereConditions.Add("機種名 LIKE @TypeName");
+                        parameters.Add(new SqlParameter("@TypeName", $"%{typeName}%"));
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(serialNumber))
+                    {
+                        whereConditions.Add("製造番号 LIKE @SerialNumber");
+                        parameters.Add(new SqlParameter("@SerialNumber", $"%{serialNumber}%"));
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(location))
+                    {
+                        whereConditions.Add("現所在地 = @Location");
+                        parameters.Add(new SqlParameter("@Location", location));
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(managementType))
+                    {
+                        whereConditions.Add("管理区分 = @ManagementType");
+                        parameters.Add(new SqlParameter("@ManagementType", managementType));
+                    }
+                    
+                    string whereClause = whereConditions.Count > 0 
+                        ? "WHERE " + string.Join(" AND ", whereConditions) 
+                        : "";
+                    
                     // 全件数を取得
-                    string countQuery = "SELECT COUNT(*) FROM T_機械管理台帳";
+                    string countQuery = $"SELECT COUNT(*) FROM T_機械管理台帳 {whereClause}";
                     int totalRecords;
                     using (SqlCommand countCommand = new SqlCommand(countQuery, connection))
                     {
+                        // パラメータをコピーして追加（同じインスタンスを再利用しない）
+                        foreach (var param in parameters)
+                        {
+                            countCommand.Parameters.Add(new SqlParameter(param.ParameterName, param.Value));
+                        }
                         totalRecords = (int)await countCommand.ExecuteScalarAsync();
                     }
                     
                     // ページネーション付きでデータを取得（RegDate降順）
-                    string query = @"
+                    string query = $@"
                         SELECT * FROM T_機械管理台帳 
+                        {whereClause}
                         ORDER BY RegDate DESC 
                         OFFSET @Offset ROWS 
                         FETCH NEXT @PageSize ROWS ONLY";
                     
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
+                        // 元のパラメータを追加
+                        command.Parameters.AddRange(parameters.ToArray());
                         command.Parameters.AddWithValue("@Offset", (page - 1) * pageSize);
                         command.Parameters.AddWithValue("@PageSize", pageSize);
                         
