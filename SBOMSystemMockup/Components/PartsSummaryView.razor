@@ -216,7 +216,6 @@
                             合計数量
                             <i class="bi @GetSortIcon(PartsSortMode.QuantityDesc) sort-icon"></i>
                         </th>
-                        <th style="width: 60px;">単位</th>
                         <th @onclick="() => SortBy(PartsSortMode.Manufacturer)" class="@GetSortClass(PartsSortMode.Manufacturer)">
                             メーカー
                             <i class="bi @GetSortIcon(PartsSortMode.Manufacturer) sort-icon"></i>
@@ -245,12 +244,6 @@
                                 <span class="quantity-cell @(part.TotalQuantity > 10 ? "high-quantity" : "")">
                                     @part.TotalQuantity
                                 </span>
-                            </td>
-                            <td class="align-middle">
-                                @if (!string.IsNullOrEmpty(part.Unit))
-                                {
-                                    <span class="usage-count-badge">@part.Unit</span>
-                                }
                             </td>
                             <td class="align-middle">
                                 <div class="manufacturer-cell text-truncate" title="@part.Manufacturer">

@@ -102,4 +102,89 @@ namespace SBOMSystemAPI.Models
         public DateTime 登録日 { get; set; }
         public string? 登録時改訂ID { get; set; }
     }
+
+    /// <summary>
+    /// 機械IDベースの個体部品取得レスポンスモデル
+    /// </summary>
+    public class IndividualPartsGetResponse
+    {
+        public bool Success { get; set; } = true;
+        public string Message { get; set; } = "";
+        public List<IndividualPartDetailModel> Parts { get; set; } = new List<IndividualPartDetailModel>();
+        public List<IndividualPartChildDetailModel> ChildRelations { get; set; } = new List<IndividualPartChildDetailModel>();
+        public int TotalPartsCount { get; set; }
+        public int TotalChildRelationsCount { get; set; }
+        public DateTime? LastUpdated { get; set; }
+    }
+
+    /// <summary>
+    /// 部品マスタ結合済み個体部品詳細モデル
+    /// </summary>
+    public class IndividualPartDetailModel
+    {
+        // T_個体部品サブ情報
+        public string 個体部品ID { get; set; } = "";
+        public string? 個体ID { get; set; }
+        public string 機械管理ID { get; set; } = "";
+        public string 部品ID { get; set; } = "";
+        public short 個体IDごと連番 { get; set; }
+        public short 個数 { get; set; }
+        public DateTime? 廃止日 { get; set; }
+        public string? 廃止時改訂ID { get; set; }
+        public DateTime 登録日 { get; set; }
+        public string? 登録時改訂ID { get; set; }
+
+        // T_部品マスタ情報
+        public string 品番 { get; set; } = "";
+        public string 品名 { get; set; } = "";
+        public string 単位 { get; set; } = ""; // 画面表示用（実際のDBカラムには存在しない）
+        public string メーカー { get; set; } = "";
+        public string 材質 { get; set; } = "";
+        public string 型式 { get; set; } = "";
+        public string 仕様 { get; set; } = ""; // 画面表示用（実際のDBカラムには存在しない）
+        public string 備考 { get; set; } = "";
+        
+        // 部品種別情報
+        public short 部品種別 { get; set; } = 0;
+        public short ユニット種別 { get; set; } = 0;
+        public short オプションユニットFL { get; set; } = 0;
+    }
+
+    /// <summary>
+    /// 部品マスタ結合済み個体部品子部品詳細モデル
+    /// </summary>
+    public class IndividualPartChildDetailModel
+    {
+        // T_個体部品子部品サブ情報
+        public string 親子ID { get; set; } = "";
+        public string? 個体ID { get; set; }
+        public string 機械管理ID { get; set; } = "";
+        public string 親部品コード { get; set; } = "";
+        public string 子部品コード { get; set; } = "";
+        public short 連番 { get; set; }
+        public short 個数 { get; set; }
+        public DateTime? 廃止日 { get; set; }
+        public string? 廃止時改訂ID { get; set; }
+        public DateTime 登録日 { get; set; }
+        public string? 登録時改訂ID { get; set; }
+
+        // 親部品マスタ情報
+        public string 親品番 { get; set; } = "";
+        public string 親品名 { get; set; } = "";
+
+        // 子部品マスタ情報
+        public string 子品番 { get; set; } = "";
+        public string 子品名 { get; set; } = "";
+        public string 子単位 { get; set; } = ""; // 画面表示用（実際のDBカラムには存在しない）
+        public string 子メーカー { get; set; } = "";
+        public string 子材質 { get; set; } = "";
+        public string 子型式 { get; set; } = "";
+        public string 子仕様 { get; set; } = ""; // 画面表示用（実際のDBカラムには存在しない）
+        public string 子備考 { get; set; } = "";
+        
+        // 子部品種別情報
+        public short 子部品種別 { get; set; } = 0;
+        public short 子ユニット種別 { get; set; } = 0;
+        public short 子オプションユニットFL { get; set; } = 0;
+    }
 }

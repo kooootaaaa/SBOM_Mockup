@@ -101,6 +101,11 @@
         }
     </td>
     
+    <!-- 階層 -->
+    <td class="text-center align-middle">
+        <span class="badge bg-secondary">@Node.Level</span>
+    </td>
+    
     <!-- 品番 -->
     <td class="align-middle">
         <div class="part-info">
@@ -120,13 +125,6 @@
         <span class="quantity-cell">@Node.Quantity</span>
     </td>
     
-    <!-- 単位 -->
-    <td class="align-middle">
-        @if (!string.IsNullOrEmpty(Node.Unit))
-        {
-            <span class="unit-badge">@Node.Unit</span>
-        }
-    </td>
     
     <!-- メーカー -->
     <td class="align-middle">
@@ -146,6 +144,13 @@
     <td class="align-middle">
         <div class="part-info text-truncate" title="@Node.Model">
             @Node.Model
+        </div>
+    </td>
+    
+    <!-- 備考 -->
+    <td class="align-middle">
+        <div class="part-info text-truncate" title="@Node.Remarks">
+            @Node.Remarks
         </div>
     </td>
     

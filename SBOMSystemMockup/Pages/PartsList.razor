@@ -390,8 +390,12 @@
         isPartsLoading = true;
         try
         {
-            // サンプルデータを読み込み（実際のAPIに置き換え予定）
-            await LoadSamplePartsData();
+            // APIから実データを読み込み
+            await LoadPartsDataFromApi();
+            
+            // 階層表示の部品を品番順にソート
+            hierarchyParts = hierarchyParts.OrderBy(p => p.PartNumber).ToList();
+            SortChildrenRecursively(hierarchyParts);
             
             // 表示モードに応じて集計データを生成
             if (currentDisplayMode == PartsDisplayMode.Summary)
@@ -412,69 +416,165 @@
         }
     }
     
-    private async Task LoadSamplePartsData()
+    private async Task LoadPartsDataFromApi()
     {
-        // サンプルデータ（実際のAPIからの取得に置き換える予定）
-        await Task.Delay(500); // API呼び出しのシミュレーション
-        
-        hierarchyParts = new List<PartNode>
+        try
         {
-            new PartNode { PartId = "1", PartNumber = "MS-12345", PartName = "サーボモーター", Quantity = 2, Unit = "個", Manufacturer = "三菱電機", Material = "アルミニウム合金", Model = "HG-KR43B", Specification = "400W", Remarks = "高精度位置決め用" },
-            new PartNode { PartId = "2", PartNumber = "BT-5678", PartName = "タイミングベルト", Quantity = 3, Unit = "個", Manufacturer = "ゲイツ", Material = "ゴム（EPDM）", Model = "8M-1000-20", Specification = "歯数125", Remarks = "定期交換推奨" },
-            new PartNode { PartId = "3", PartNumber = "PS-9012", PartName = "近接センサー", Quantity = 4, Unit = "個", Manufacturer = "オムロン", Material = "ステンレス（SUS304）", Model = "E2E-X5ME1", Specification = "検出距離5mm", Remarks = "" },
-            new PartNode { PartId = "4", PartNumber = "CY-3456", PartName = "エアシリンダー", Quantity = 1, Unit = "個", Manufacturer = "SMC", Material = "アルミニウム", Model = "CDQ2B40-30DZ", Specification = "φ40×30", Remarks = "複動式、磁石付き" },
-            new PartNode { PartId = "5", PartNumber = "VL-7890", PartName = "電磁弁", Quantity = 2, Unit = "個", Manufacturer = "CKD", Material = "真鍮", Model = "4GD210-08", Specification = "5ポート2位置", Remarks = "DC24V仕様" },
-            new PartNode 
-            { 
-                PartId = "6", 
-                PartNumber = "SET-001", 
-                PartName = "駆動ユニット", 
-                Quantity = 1, 
-                Unit = "式", 
-                Manufacturer = "自社", 
-                Material = "-", 
-                Model = "DRV-UNIT-01", 
-                Specification = "組立品", 
-                Remarks = "サーボモーター含む", 
-                HasChildren = true,
-                IsUnit = true,
-                Children = new List<PartNode>
+            if (string.IsNullOrEmpty(MachineId))
+            {
+                errorMessage = "機械IDが指定されていません。";
+                return;
+            }
+
+            var response = await Http.GetAsync($"{apiBaseUrl}/Parts/individual/{MachineId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent, new JsonSerializerOptions
                 {
-                    new PartNode { PartId = "7", PartNumber = "BR-2345", PartName = "ブラケット", Quantity = 4, Unit = "個", Manufacturer = "自社", Material = "SS400", Model = "BRK-100", Specification = "t=6mm", Remarks = "", Level = 1 },
-                    new PartNode { PartId = "8", PartNumber = "SC-5678", PartName = "M6ボルト", Quantity = 16, Unit = "個", Manufacturer = "ミスミ", Material = "SUS304", Model = "HXNB6-20", Specification = "M6×20", Remarks = "", Level = 1 }
-                }
-            },
-            new PartNode 
-            { 
-                PartId = "9", 
-                PartNumber = "SET-002", 
-                PartName = "センサーユニット", 
-                Quantity = 1, 
-                Unit = "式", 
-                Manufacturer = "自社", 
-                Material = "-", 
-                Model = "SEN-UNIT-01", 
-                Specification = "組立品", 
-                Remarks = "近接センサー4個含む", 
-                HasChildren = true,
-                IsUnit = true,
-                Children = new List<PartNode>
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (apiResponse != null)
                 {
-                    new PartNode { PartId = "10", PartNumber = "CB-1234", PartName = "ケーブル", Quantity = 4, Unit = "本", Manufacturer = "オムロン", Material = "PVC", Model = "XS3F-M421-402-A", Specification = "2m", Remarks = "", Level = 1 }
+                    await BuildHierarchyFromApiResponse(apiResponse);
                 }
             }
-        };
-        
-        // 子部品の親参照を設定
-        foreach (var parent in hierarchyParts.Where(p => p.HasChildren))
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"APIエラー: {response.StatusCode} - {errorContent}";
+                Console.WriteLine($"個体部品API呼び出しエラー: {errorContent}");
+                
+                // データが存在しない場合は空のリストを設定
+                hierarchyParts = new List<PartNode>();
+            }
+        }
+        catch (Exception ex)
         {
-            foreach (var child in parent.Children)
+            errorMessage = $"個体部品データ取得エラー: {ex.Message}";
+            Console.WriteLine($"個体部品データ取得エラー: {ex.Message}");
+            hierarchyParts = new List<PartNode>();
+        }
+    }
+
+    private async Task BuildHierarchyFromApiResponse(Dictionary<string, object> apiResponse)
+    {
+        await Task.Delay(100); // 処理時間のシミュレーション
+
+        var partLookup = new Dictionary<string, PartNode>();
+        var childRelations = new List<(string ParentId, string ChildId, int Quantity)>();
+
+        // 1. 個体部品データからPartNodeを作成
+        if (apiResponse.TryGetValue("parts", out var partsObj) && partsObj is JsonElement partsElement)
+        {
+            foreach (var partElement in partsElement.EnumerateArray())
+            {
+                var partNode = new PartNode
+                {
+                    PartId = GetStringFromJsonElement(partElement, "部品ID"),
+                    PartNumber = GetStringFromJsonElement(partElement, "品番"),
+                    PartName = GetStringFromJsonElement(partElement, "品名"),
+                    Quantity = GetIntFromJsonElement(partElement, "個数"),
+                    Unit = "", // 単位カラムは存在しない
+                    Manufacturer = GetStringFromJsonElement(partElement, "メーカー"),
+                    Material = GetStringFromJsonElement(partElement, "材質"),
+                    Model = GetStringFromJsonElement(partElement, "型式"),
+                    Specification = "", // 仕様カラムは存在しない
+                    Remarks = GetStringFromJsonElement(partElement, "備考"),
+                    Level = 0,
+                    Children = new List<PartNode>(),
+                    // 部品種別から判定
+                    IsUnit = GetIntFromJsonElement(partElement, "ユニット種別") > 0,
+                    IsOptionUnit = GetIntFromJsonElement(partElement, "オプションユニットFL") > 0
+                };
+
+                partLookup[partNode.PartId] = partNode;
+            }
+        }
+
+        // 2. 子部品関係データから親子関係を構築
+        if (apiResponse.TryGetValue("childRelations", out var childObj) && childObj is JsonElement childElement)
+        {
+            foreach (var relationElement in childElement.EnumerateArray())
+            {
+                var parentId = GetStringFromJsonElement(relationElement, "親部品コード");
+                var childId = GetStringFromJsonElement(relationElement, "子部品コード");
+                var quantity = GetIntFromJsonElement(relationElement, "個数");
+
+                // 子部品がpartLookupに存在しない場合は作成
+                if (!partLookup.ContainsKey(childId))
+                {
+                    var childNode = new PartNode
+                    {
+                        PartId = childId,
+                        PartNumber = GetStringFromJsonElement(relationElement, "子品番"),
+                        PartName = GetStringFromJsonElement(relationElement, "子品名"),
+                        Quantity = quantity,
+                        Unit = "", // 単位カラムは存在しない
+                        Manufacturer = GetStringFromJsonElement(relationElement, "子メーカー"),
+                        Material = GetStringFromJsonElement(relationElement, "子材質"),
+                        Model = GetStringFromJsonElement(relationElement, "子型式"),
+                        Specification = "", // 仕様カラムは存在しない
+                        Remarks = GetStringFromJsonElement(relationElement, "子備考"),
+                        Level = 1,
+                        Children = new List<PartNode>(),
+                        // 子部品種別から判定
+                        IsUnit = GetIntFromJsonElement(relationElement, "子ユニット種別") > 0,
+                        IsOptionUnit = GetIntFromJsonElement(relationElement, "子オプションユニットFL") > 0
+                    };
+
+                    partLookup[childId] = childNode;
+                }
+
+                childRelations.Add((parentId, childId, quantity));
+            }
+        }
+
+        // 3. 親子関係を設定
+        foreach (var (parentId, childId, quantity) in childRelations)
+        {
+            if (partLookup.TryGetValue(parentId, out var parent) && partLookup.TryGetValue(childId, out var child))
             {
                 child.Parent = parent;
                 child.Level = parent.Level + 1;
+                child.Quantity = quantity; // 親子関係の数量で上書き
+                
+                parent.Children.Add(child);
+                parent.HasChildren = true;
+                parent.ChildrenLoaded = true;
+                parent.IsUnit = true; // 子部品を持つ場合はユニット扱い
             }
-            parent.ChildrenLoaded = true;
         }
+
+        // 4. 最上位部品のみを階層データに設定（親を持たない部品）
+        hierarchyParts = partLookup.Values.Where(p => p.Parent == null).ToList();
+    }
+
+    private string GetStringFromJsonElement(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null)
+        {
+            return prop.GetString() ?? "";
+        }
+        return "";
+    }
+
+    private int GetIntFromJsonElement(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null)
+        {
+            if (prop.ValueKind == JsonValueKind.Number)
+            {
+                return prop.GetInt32();
+            }
+            if (int.TryParse(prop.GetString(), out int result))
+            {
+                return result;
+            }
+        }
+        return 1; // デフォルト値
     }
     
     private async Task LoadChildParts(PartNode node)
@@ -483,5 +583,17 @@
         // 現在はサンプルデータなので、既に読み込み済み
         await Task.Delay(100);
         node.ChildrenLoaded = true;
+    }
+    
+    private void SortChildrenRecursively(List<PartNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.HasChildren && node.Children.Count > 0)
+            {
+                node.Children = node.Children.OrderBy(c => c.PartNumber).ToList();
+                SortChildrenRecursively(node.Children);
+            }
+        }
     }
 } 

@@ -302,5 +302,139 @@ namespace SBOMSystemAPI.Controllers
                 }
             }
         }
+
+        [HttpGet("individual/{machineId}")]
+        public async Task<IActionResult> GetIndividualParts(string machineId)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    var response = new IndividualPartsGetResponse();
+
+                    // 1. T_個体部品サブとT_部品マスタを結合して機械の個体部品を取得
+                    string partsQuery = @"
+                        SELECT 
+                            i.個体部品ID, i.個体ID, i.機械管理ID, i.部品ID, i.個体IDごと連番, i.個数,
+                            i.廃止日, i.廃止時改訂ID, i.登録日, i.登録時改訂ID,
+                            p.品番, p.品名, p.メーカー, p.材質, p.型式, p.備考,
+                            p.部品種別, p.ユニット種別, p.オプションユニットFL
+                        FROM T_個体部品サブ i
+                        LEFT JOIN T_部品マスタ p ON i.部品ID = p.部品ID
+                        WHERE i.機械管理ID = @machineId AND i.廃止日 IS NULL
+                        ORDER BY p.品番, i.個体IDごと連番";
+
+                    using (SqlCommand partsCmd = new SqlCommand(partsQuery, connection))
+                    {
+                        partsCmd.Parameters.AddWithValue("@machineId", machineId);
+
+                        using (SqlDataAdapter partsAdapter = new SqlDataAdapter(partsCmd))
+                        {
+                            DataTable partsTable = new DataTable();
+                            partsAdapter.Fill(partsTable);
+
+                            foreach (DataRow row in partsTable.Rows)
+                            {
+                                response.Parts.Add(new IndividualPartDetailModel
+                                {
+                                    個体部品ID = row["個体部品ID"]?.ToString() ?? "",
+                                    個体ID = row["個体ID"]?.ToString(),
+                                    機械管理ID = row["機械管理ID"]?.ToString() ?? "",
+                                    部品ID = row["部品ID"]?.ToString() ?? "",
+                                    個体IDごと連番 = Convert.ToInt16(row["個体IDごと連番"]),
+                                    個数 = Convert.ToInt16(row["個数"]),
+                                    廃止日 = row["廃止日"] == DBNull.Value ? null : Convert.ToDateTime(row["廃止日"]),
+                                    廃止時改訂ID = row["廃止時改訂ID"]?.ToString(),
+                                    登録日 = Convert.ToDateTime(row["登録日"]),
+                                    登録時改訂ID = row["登録時改訂ID"]?.ToString(),
+                                    品番 = row["品番"]?.ToString() ?? "",
+                                    品名 = row["品名"]?.ToString() ?? "",
+                                    単位 = "", // 単位カラムは存在しない
+                                    メーカー = row["メーカー"]?.ToString() ?? "",
+                                    材質 = row["材質"]?.ToString() ?? "",
+                                    型式 = row["型式"]?.ToString() ?? "",
+                                    仕様 = "", // 仕様カラムは存在しない
+                                    備考 = row["備考"]?.ToString() ?? "",
+                                    部品種別 = row["部品種別"] == DBNull.Value ? (short)0 : Convert.ToInt16(row["部品種別"]),
+                                    ユニット種別 = row["ユニット種別"] == DBNull.Value ? (short)0 : Convert.ToInt16(row["ユニット種別"]),
+                                    オプションユニットFL = row["オプションユニットFL"] == DBNull.Value ? (short)0 : Convert.ToInt16(row["オプションユニットFL"])
+                                });
+                            }
+                        }
+                    }
+
+                    // 2. T_個体部品子部品サブとT_部品マスタを結合して親子関係を取得
+                    string childQuery = @"
+                        SELECT 
+                            c.親子ID, c.個体ID, c.機械管理ID, c.親部品コード, c.子部品コード, c.連番, c.個数,
+                            c.廃止日, c.廃止時改訂ID, c.登録日, c.登録時改訂ID,
+                            pp.品番 AS 親品番, pp.品名 AS 親品名,
+                            cp.品番 AS 子品番, cp.品名 AS 子品名, 
+                            cp.メーカー AS 子メーカー, cp.材質 AS 子材質, cp.型式 AS 子型式, 
+                            cp.備考 AS 子備考,
+                            cp.部品種別 AS 子部品種別, cp.ユニット種別 AS 子ユニット種別, cp.オプションユニットFL AS 子オプションユニットFL
+                        FROM T_個体部品子部品サブ c
+                        LEFT JOIN T_部品マスタ pp ON c.親部品コード = pp.部品ID
+                        LEFT JOIN T_部品マスタ cp ON c.子部品コード = cp.部品ID
+                        WHERE c.機械管理ID = @machineId AND c.廃止日 IS NULL
+                        ORDER BY pp.品番, cp.品番, c.連番";
+
+                    using (SqlCommand childCmd = new SqlCommand(childQuery, connection))
+                    {
+                        childCmd.Parameters.AddWithValue("@machineId", machineId);
+
+                        using (SqlDataAdapter childAdapter = new SqlDataAdapter(childCmd))
+                        {
+                            DataTable childTable = new DataTable();
+                            childAdapter.Fill(childTable);
+
+                            foreach (DataRow row in childTable.Rows)
+                            {
+                                response.ChildRelations.Add(new IndividualPartChildDetailModel
+                                {
+                                    親子ID = row["親子ID"]?.ToString() ?? "",
+                                    個体ID = row["個体ID"]?.ToString(),
+                                    機械管理ID = row["機械管理ID"]?.ToString() ?? "",
+                                    親部品コード = row["親部品コード"]?.ToString() ?? "",
+                                    子部品コード = row["子部品コード"]?.ToString() ?? "",
+                                    連番 = Convert.ToInt16(row["連番"]),
+                                    個数 = Convert.ToInt16(row["個数"]),
+                                    廃止日 = row["廃止日"] == DBNull.Value ? null : Convert.ToDateTime(row["廃止日"]),
+                                    廃止時改訂ID = row["廃止時改訂ID"]?.ToString(),
+                                    登録日 = Convert.ToDateTime(row["登録日"]),
+                                    登録時改訂ID = row["登録時改訂ID"]?.ToString(),
+                                    親品番 = row["親品番"]?.ToString() ?? "",
+                                    親品名 = row["親品名"]?.ToString() ?? "",
+                                    子品番 = row["子品番"]?.ToString() ?? "",
+                                    子品名 = row["子品名"]?.ToString() ?? "",
+                                    子単位 = "", // 単位カラムは存在しない
+                                    子メーカー = row["子メーカー"]?.ToString() ?? "",
+                                    子材質 = row["子材質"]?.ToString() ?? "",
+                                    子型式 = row["子型式"]?.ToString() ?? "",
+                                    子仕様 = "", // 仕様カラムは存在しない
+                                    子備考 = row["子備考"]?.ToString() ?? "",
+                                    子部品種別 = row["子部品種別"] == DBNull.Value ? (short)0 : Convert.ToInt16(row["子部品種別"]),
+                                    子ユニット種別 = row["子ユニット種別"] == DBNull.Value ? (short)0 : Convert.ToInt16(row["子ユニット種別"]),
+                                    子オプションユニットFL = row["子オプションユニットFL"] == DBNull.Value ? (short)0 : Convert.ToInt16(row["子オプションユニットFL"])
+                                });
+                            }
+                        }
+                    }
+
+                    response.TotalPartsCount = response.Parts.Count;
+                    response.TotalChildRelationsCount = response.ChildRelations.Count;
+                    response.LastUpdated = response.Parts.Count > 0 ? response.Parts.Max(p => p.登録日) : null;
+                    response.Message = $"機械ID: {machineId} の個体部品データを取得しました。";
+
+                    return Ok(response);
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = $"個体部品データ取得でエラーが発生しました: {ex.Message}" });
+            }
+        }
     }
 }
