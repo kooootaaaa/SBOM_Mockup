@@ -535,9 +535,12 @@
                         var partNumber = GetStringFromJsonElement(partElement, "品番");
                         Console.WriteLine($"部品: {partNumber}, ユニット種別: {unitType}, オプションユニットFL: {optionUnitFlag}");
                         
+                        var partId = GetStringFromJsonElement(partElement, "部品ID");
+                        Console.WriteLine($"  → 部品ID: {partId}");
+                        
                         var part = new Part
                         {
-                            PartId = GetIntFromJsonElement(partElement, "部品ID"),
+                            PartId = partId,  // 部品IDは文字列
                             PartNumber = partNumber,
                             PartName = GetStringFromJsonElement(partElement, "品名"),
                             Quantity = Math.Max(1, GetIntFromJsonElement(partElement, "個数")),
@@ -550,7 +553,7 @@
                             IsUnit = unitType > 0,
                             IsOptionUnit = optionUnitFlag != 0, // 0以外（1または-1）をオプションとする
                             Level = 0,  // 最上位は階層0
-                            ChildrenLoaded = true  // 初期値を明示的にtrueに設定（子部品なしと仮定）
+                            ChildrenLoaded = false  // 初期値は常にfalse（後で正しく設定される）
                         };
                         
                         Console.WriteLine($"  → IsUnit: {part.IsUnit}, IsOptionUnit: {part.IsOptionUnit}");
@@ -596,6 +599,11 @@
             foreach (var relationElement in childElement.EnumerateArray())
             {
                 var parentId = GetStringFromJsonElement(relationElement, "親部品コード");
+                var childId = GetStringFromJsonElement(relationElement, "子部品コード");
+                var childPartNumber = GetStringFromJsonElement(relationElement, "子品番");
+                
+                Console.WriteLine($"親子関係: 親ID={parentId}, 子ID={childId}, 子品番={childPartNumber}");
+                
                 if (!allChildRelations.ContainsKey(parentId))
                 {
                     allChildRelations[parentId] = new List<JsonElement>();
@@ -603,18 +611,27 @@
                 allChildRelations[parentId].Add(relationElement);
             }
             
-            // 最上位部品（T_個体部品サブの部品）に対して、子部品が存在するかチェックのみ行う
+            // 最上位部品（T_個体部品サブの部品）に対して、子部品が存在するかチェック
             foreach (var part in allParts)
             {
-                if (allChildRelations.ContainsKey(part.PartId.ToString()))
+                Console.WriteLine($"部品チェック: {part.PartNumber} (ID: {part.PartId}, IsUnit: {part.IsUnit})");
+                
+                // ユニットの場合は常に展開可能とする（子部品がなくても）
+                if (part.IsUnit)
                 {
-                    // 子部品が存在することを示すが、まだ読み込まない（展開時に読み込む）
+                    part.ChildrenLoaded = false; // ユニットは常に展開可能
+                    Console.WriteLine($"  → ユニット部品として設定（展開可能）");
+                }
+                else if (allChildRelations.ContainsKey(part.PartId))
+                {
+                    // ユニット以外で子部品が存在する場合
                     part.ChildrenLoaded = false; // 展開時に読み込むためfalse
-                    Console.WriteLine($"展開可能部品: {part.PartNumber} (部品ID: {part.PartId})");
+                    Console.WriteLine($"  → 子部品あり（展開可能）");
                 }
                 else
                 {
                     part.ChildrenLoaded = true; // 子部品がない場合はtrue
+                    Console.WriteLine($"  → 子部品なし");
                 }
             }
             
@@ -718,16 +735,16 @@
         return displayParts.Skip(startIndex).Take(pageSize).ToList();
     }
     
-    // 展開/折りたたみロジック（子部品がある場合のみ動作）
+    // 展開/折りたたみロジック（ユニットの場合は常に動作）
     private async Task ToggleExpand(Part part)
     {
-        Console.WriteLine($"ToggleExpand clicked: 部品ID={part.PartId}, 品番={part.PartNumber}");
+        Console.WriteLine($"ToggleExpand clicked: 部品ID={part.PartId}, 品番={part.PartNumber}, IsUnit={part.IsUnit}");
         Console.WriteLine($"  ChildrenLoaded={part.ChildrenLoaded}, IsLoading={part.IsLoading}, Children.Count={part.Children.Count}");
         
-        // 子部品が存在しない場合は何もしない
-        if (!allChildRelations.ContainsKey(part.PartId.ToString()) && part.Children.Count == 0)
+        // ユニットでない場合は何もしない
+        if (!part.IsUnit && part.Children.Count == 0)
         {
-            Console.WriteLine("  子部品が存在しないため、展開処理をスキップ");
+            Console.WriteLine("  ユニットではないため、展開処理をスキップ");
             return;
         }
         
@@ -758,21 +775,28 @@
         try
         {
             Console.WriteLine($"LoadChildParts for 部品ID: {part.PartId}, 品番: {part.PartNumber}");
+            Console.WriteLine($"allChildRelations keys: {string.Join(", ", allChildRelations.Keys)}");
+            Console.WriteLine($"Checking key: {part.PartId}");
             
             // allChildRelationsから子部品を構築
-            if (allChildRelations.ContainsKey(part.PartId.ToString()))
+            if (allChildRelations.ContainsKey(part.PartId))
             {
+                Console.WriteLine($"Found children for part {part.PartId}");
                 part.Children.Clear();
                 
-                foreach (var relationElement in allChildRelations[part.PartId.ToString()])
+                foreach (var relationElement in allChildRelations[part.PartId])
                 {
+                    var childPartId = GetStringFromJsonElement(relationElement, "子部品コード");  // 文字列として取得
+                    var childPartNumber = GetStringFromJsonElement(relationElement, "子品番");
                     var childUnitType = GetIntFromJsonElement(relationElement, "子ユニット種別");
                     var childOptionUnitFlag = GetIntFromJsonElement(relationElement, "子オプションユニットFL");
                     
+                    Console.WriteLine($"  Processing child: ID={childPartId}, 品番={childPartNumber}");
+                    
                     var childPart = new Part
                     {
-                        PartId = GetIntFromJsonElement(relationElement, "子部品コード"),
-                        PartNumber = GetStringFromJsonElement(relationElement, "子品番"),
+                        PartId = childPartId,  // 文字列をそのまま設定
+                        PartNumber = childPartNumber,
                         PartName = GetStringFromJsonElement(relationElement, "子品名"),
                         Quantity = Math.Max(1, GetIntFromJsonElement(relationElement, "個数")),
                         Manufacturer = GetStringFromJsonElement(relationElement, "子メーカー"),
@@ -784,29 +808,34 @@
                         IsUnit = childUnitType > 0,
                         IsOptionUnit = childOptionUnitFlag != 0,
                         Level = part.Level + 1,
-                        Parent = part
+                        Parent = part,
+                        ChildrenLoaded = childUnitType > 0 ? false : true  // ユニットの場合は常に展開可能
                     };
                     
                     // 子部品にも孫部品が存在するかチェック
-                    if (allChildRelations.ContainsKey(childPart.PartId.ToString()))
+                    if (allChildRelations.ContainsKey(childPart.PartId))
                     {
                         childPart.ChildrenLoaded = false; // 孫部品がある場合は展開可能
-                    }
-                    else
-                    {
-                        childPart.ChildrenLoaded = true; // 孫部品がない場合
+                        Console.WriteLine($"    → 孫部品あり");
                     }
                     
                     part.Children.Add(childPart);
-                    Console.WriteLine($"  子部品追加: {childPart.PartNumber}, 孫あり: {!childPart.ChildrenLoaded}");
+                    Console.WriteLine($"  子部品追加: {childPart.PartNumber}, IsUnit={childPart.IsUnit}, ChildrenLoaded={childPart.ChildrenLoaded}");
                 }
                 
                 Console.WriteLine($"子部品数: {part.Children.Count}");
+            }
+            else
+            {
+                Console.WriteLine($"No children found for part {part.PartId} in allChildRelations");
+                // ユニットの場合でも子部品がない場合は空のリストを設定
+                part.Children.Clear();
             }
 
             part.IsExpanded = true;
             part.ChildrenLoaded = true;
             UpdateDisplayParts();
+            Console.WriteLine($"LoadChildParts完了: IsExpanded={part.IsExpanded}, ChildrenLoaded={part.ChildrenLoaded}");
         }
         catch (Exception ex)
         {
@@ -846,7 +875,7 @@
     // 画面4と同じPartクラス
     public class Part
     {
-        public int PartId { get; set; }
+        public string PartId { get; set; } = "";  // 部品IDは文字列型
         public string PartNumber { get; set; } = "";
         public string PartName { get; set; } = "";
         public int Quantity { get; set; }
