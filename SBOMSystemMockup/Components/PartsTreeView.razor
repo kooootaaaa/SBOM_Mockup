@@ -78,15 +78,6 @@
                     </select>
                 </div>
                 
-                @if (Parts.Any(p => p.HasChildren))
-                {
-                    <button class="btn btn-outline-secondary btn-sm" @onclick="ExpandAll">
-                        <i class="bi bi-plus-square me-1"></i>全展開
-                    </button>
-                    <button class="btn btn-outline-secondary btn-sm" @onclick="CollapseAll">
-                        <i class="bi bi-dash-square me-1"></i>全折りたたみ
-                    </button>
-                }
                 @if (OnRefresh.HasDelegate)
                 {
                     <button class="btn btn-outline-primary btn-sm" @onclick="OnRefresh" disabled="@IsLoading">
@@ -261,39 +252,6 @@
                 node.IsLoading = false;
                 StateHasChanged();
             }
-        }
-    }
-
-    private void ExpandAll()
-    {
-        ExpandAllRecursive(Parts);
-        StateHasChanged();
-    }
-
-    private void ExpandAllRecursive(List<PartNode> nodes)
-    {
-        foreach (var node in nodes)
-        {
-            if (node.HasChildren)
-            {
-                node.IsExpanded = true;
-                ExpandAllRecursive(node.Children);
-            }
-        }
-    }
-
-    private void CollapseAll()
-    {
-        CollapseAllRecursive(Parts);
-        StateHasChanged();
-    }
-
-    private void CollapseAllRecursive(List<PartNode> nodes)
-    {
-        foreach (var node in nodes)
-        {
-            node.IsExpanded = false;
-            CollapseAllRecursive(node.Children);
         }
     }
 }

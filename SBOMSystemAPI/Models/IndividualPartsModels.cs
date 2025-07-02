@@ -148,6 +148,10 @@ namespace SBOMSystemAPI.Models
         public short 部品種別 { get; set; } = 0;
         public short ユニット種別 { get; set; } = 0;
         public short オプションユニットFL { get; set; } = 0;
+        
+        // 画面表示用のboolean値
+        public bool IsUnit => ユニット種別 > 0;
+        public bool IsOptionUnit => オプションユニットFL > 0;
     }
 
     /// <summary>
@@ -186,5 +190,9 @@ namespace SBOMSystemAPI.Models
         public short 子部品種別 { get; set; } = 0;
         public short 子ユニット種別 { get; set; } = 0;
         public short 子オプションユニットFL { get; set; } = 0;
+        
+        // 子部品の画面表示用boolean値
+        public bool 子IsUnit => 子ユニット種別 > 0;
+        public bool 子IsOptionUnit => 子オプションユニットFL > 0;
     }
 }

@@ -1,5 +1,6 @@
 @page "/machine/{MachineId}/parts"
 @using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Rendering
 @using System.Collections.Generic
 @using System.Linq
 @using System.Text.Json
@@ -70,6 +71,33 @@
         background: #5c636a;
         border-color: #565e64;
         color: white;
+    }
+    
+    .cursor-pointer {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .cursor-pointer:hover {
+        color: #0d6efd;
+    }
+    
+    .child-part {
+        background-color: #f8f9fa;
+    }
+    
+    .child-part td {
+        border-left: 3px solid #dee2e6;
+    }
+    
+    tr.child-part:hover {
+        background-color: #e9ecef !important;
+    }
+    
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+        border-width: 0.2em;
     }
 </style>
 
@@ -179,16 +207,86 @@
     </div>
 </div>
 
-@if (showParts)
+@if (showParts && allParts.Count > 0)
 {
     @if (currentDisplayMode == PartsDisplayMode.Hierarchy)
     {
-        <PartsTreeView 
-            Parts="hierarchyParts" 
-            IsLoading="isPartsLoading"
-            ShowActions="false"
-            OnRefresh="LoadPartsData"
-            OnLoadChildren="LoadChildParts" />
+        <div class="card shadow-sm">
+            <div class="card-header bg-light border-0 py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 text-secondary fw-semibold small">階層表示</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- ページサイズ選択 -->
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="form-label mb-0 small">表示件数:</label>
+                            <select class="form-select form-select-sm" style="width: 80px;" @onchange="OnPageSizeChanged">
+                                <option value="5" selected="@(pageSize == 5)">5件</option>
+                                <option value="10" selected="@(pageSize == 10)">10件</option>
+                                <option value="15" selected="@(pageSize == 15)">15件</option>
+                                <option value="20" selected="@(pageSize == 20)">20件</option>
+                                <option value="50" selected="@(pageSize == 50)">50件</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 600px;">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width: 30px;"></th>
+                                <th style="width: 50px;">階層</th>
+                                <th>品番</th>
+                                <th>品名</th>
+                                <th>数量</th>
+                                <th>メーカー</th>
+                                <th>材質</th>
+                                <th>型式</th>
+                                <th>備考</th>
+                                <th>ユニット種別</th>
+                                <th>オプションFL</th>
+                                <th>種別</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var part in GetCurrentPageParts())
+                            {
+                                @RenderPartRow(part)
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ページネーション -->
+        @if (totalPages > 1)
+        {
+            <nav aria-label="ページネーション" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(currentPage - 1)" disabled="@(currentPage == 1)">前へ</button>
+                    </li>
+                    
+                    @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                    {
+                        int pageNumber = i;
+                        <li class="page-item @(pageNumber == currentPage ? "active" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
+                        </li>
+                    }
+                    
+                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(currentPage + 1)" disabled="@(currentPage == totalPages)">次へ</button>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="text-center mt-2">
+                @((currentPage - 1) * pageSize + 1) - @(Math.Min(currentPage * pageSize, displayParts.Count)) / @displayParts.Count 件
+            </div>
+        }
     }
     else if (currentDisplayMode == PartsDisplayMode.Summary)
     {
@@ -208,13 +306,19 @@
     private bool showParts = false;
     private PartsDisplayMode currentDisplayMode = PartsDisplayMode.Hierarchy;
     
-    // 新しいデータモデル
-    private List<PartNode> hierarchyParts = new List<PartNode>();
+    // 画面4と同じ部品取得方式
+    private List<Part> allParts = new List<Part>();
+    private List<Part> displayParts = new List<Part>();
     private List<PartSummary> summaryParts = new List<PartSummary>();
     private bool isPartsLoading = false;
     
+    // ページネーション
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => (int)Math.Ceiling((double)displayParts.Count / pageSize);
+    
     // 機械情報を保持する変数
-    private string? serialNumber;  // 製造番号
+    private string? serialNumber;
     private string? model;
     private string? typeName;
     private string? completionDate;
@@ -227,6 +331,9 @@
     private string apiBaseUrl = "http://localhost:5196/api";
     private bool isLoading = false;
     private string errorMessage = "";
+    
+    // 機種情報
+    private int? selectedMachineTypeId = null;
     
     protected override async Task OnInitializedAsync()
     {
@@ -362,205 +469,169 @@
         return null;
     }
     
-    // 新しいメソッド群
-    
     void NavTo(string url) => Nav.NavigateTo(url);
     
-    void TogglePartsDisplay()
+    private async Task TogglePartsDisplay()
     {
         showParts = !showParts;
-        if (showParts && hierarchyParts.Count == 0)
+        if (showParts && allParts.Count == 0)
         {
-            // 初回表示時にデータを読み込み
-            _ = LoadPartsData();
+            // 画面4と同じ方式で部品データを読み込み
+            await FetchPartsFromMachineSpec();
         }
+        StateHasChanged();
     }
     
-    private async Task ChangeDisplayMode(PartsDisplayMode newMode)
+    private void ChangeDisplayMode(PartsDisplayMode newMode)
     {
         if (currentDisplayMode != newMode)
         {
             currentDisplayMode = newMode;
-            await LoadPartsData();
-        }
-    }
-    
-    private async Task LoadPartsData()
-    {
-        isPartsLoading = true;
-        try
-        {
-            // APIから実データを読み込み
-            await LoadPartsDataFromApi();
-            
-            // 階層表示の部品を品番順にソート
-            hierarchyParts = hierarchyParts.OrderBy(p => p.PartNumber).ToList();
-            SortChildrenRecursively(hierarchyParts);
-            
-            // 表示モードに応じて集計データを生成
-            if (currentDisplayMode == PartsDisplayMode.Summary)
+            if (allParts.Count > 0)
             {
-                summaryParts = PartsTreeHelper.GenerateSummary(hierarchyParts);
-                summaryParts = PartsTreeHelper.SortSummary(summaryParts, PartsSortMode.PartNumber);
+                UpdateDisplayParts();
             }
         }
-        catch (Exception ex)
-        {
-            errorMessage = $"部品データ取得エラー: {ex.Message}";
-            Console.WriteLine($"部品データ取得エラー: {ex.Message}");
-        }
-        finally
-        {
-            isPartsLoading = false;
-            StateHasChanged();
-        }
     }
     
-    private async Task LoadPartsDataFromApi()
+    // T_個体部品サブとT_個体部品子部品サブから部品を取得
+    private async Task FetchPartsFromMachineSpec()
     {
         try
         {
+            isPartsLoading = true;
+            errorMessage = "";
+            
             if (string.IsNullOrEmpty(MachineId))
             {
                 errorMessage = "機械IDが指定されていません。";
                 return;
             }
-
+            
+            // T_個体部品サブから部品情報を取得
             var response = await Http.GetAsync($"{apiBaseUrl}/Parts/individual/{MachineId}");
             
             if (response.IsSuccessStatusCode)
             {
-                var jsonContent = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent, new JsonSerializerOptions
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"APIレスポンス: {responseContent}");
+                
+                var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
-
-                if (apiResponse != null)
+                
+                if (result != null && result.ContainsKey("parts"))
                 {
-                    await BuildHierarchyFromApiResponse(apiResponse);
+                    var partsElement = (JsonElement)result["parts"];
+                    allParts.Clear();
+                    
+                    foreach (var partElement in partsElement.EnumerateArray())
+                    {
+                        var unitType = GetIntFromJsonElement(partElement, "ユニット種別");
+                        var optionUnitFlag = GetIntFromJsonElement(partElement, "オプションユニットFL");
+                        
+                        // デバッグ用ログ
+                        var partNumber = GetStringFromJsonElement(partElement, "品番");
+                        Console.WriteLine($"部品: {partNumber}, ユニット種別: {unitType}, オプションユニットFL: {optionUnitFlag}");
+                        
+                        var part = new Part
+                        {
+                            PartId = GetIntFromJsonElement(partElement, "部品ID"),
+                            PartNumber = partNumber,
+                            PartName = GetStringFromJsonElement(partElement, "品名"),
+                            Quantity = Math.Max(1, GetIntFromJsonElement(partElement, "個数")),
+                            Manufacturer = GetStringFromJsonElement(partElement, "メーカー"),
+                            Material = GetStringFromJsonElement(partElement, "材質"),
+                            Model = GetStringFromJsonElement(partElement, "型式"),
+                            Remarks = GetStringFromJsonElement(partElement, "備考"),
+                            UnitType = unitType,
+                            OptionUnitFlag = optionUnitFlag,
+                            IsUnit = unitType > 0,
+                            IsOptionUnit = optionUnitFlag != 0, // 0以外（1または-1）をオプションとする
+                            Level = 0  // 最上位は階層0
+                        };
+                        
+                        Console.WriteLine($"  → IsUnit: {part.IsUnit}, IsOptionUnit: {part.IsOptionUnit}");
+                        allParts.Add(part);
+                    }
+                    
+                    // T_個体部品子部品サブから子部品関係を取得して設定
+                    await LoadChildrenFromIndividualRelations(result);
+                    UpdateDisplayParts();
                 }
             }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"APIエラー: {response.StatusCode} - {errorContent}";
-                Console.WriteLine($"個体部品API呼び出しエラー: {errorContent}");
-                
-                // データが存在しない場合は空のリストを設定
-                hierarchyParts = new List<PartNode>();
+                errorMessage = $"部品取得エラー: {response.StatusCode} - {errorContent}";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"個体部品データ取得エラー: {ex.Message}";
-            Console.WriteLine($"個体部品データ取得エラー: {ex.Message}");
-            hierarchyParts = new List<PartNode>();
+            errorMessage = $"部品取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            isPartsLoading = false;
         }
     }
-
-    private async Task BuildHierarchyFromApiResponse(Dictionary<string, object> apiResponse)
+    
+    // T_個体部品子部品サブから子部品関係を設定
+    private async Task LoadChildrenFromIndividualRelations(Dictionary<string, object> apiResponse)
     {
-        await Task.Delay(100); // 処理時間のシミュレーション
-
-        var partLookup = new Dictionary<string, PartNode>();
-        var childRelations = new List<(string ParentId, string ChildId, int Quantity)>();
-
-        // 1. 個体部品データからPartNodeを作成
-        if (apiResponse.TryGetValue("parts", out var partsObj) && partsObj is JsonElement partsElement)
-        {
-            foreach (var partElement in partsElement.EnumerateArray())
-            {
-                var partNode = new PartNode
-                {
-                    PartId = GetStringFromJsonElement(partElement, "部品ID"),
-                    PartNumber = GetStringFromJsonElement(partElement, "品番"),
-                    PartName = GetStringFromJsonElement(partElement, "品名"),
-                    Quantity = GetIntFromJsonElement(partElement, "個数"),
-                    Unit = "", // 単位カラムは存在しない
-                    Manufacturer = GetStringFromJsonElement(partElement, "メーカー"),
-                    Material = GetStringFromJsonElement(partElement, "材質"),
-                    Model = GetStringFromJsonElement(partElement, "型式"),
-                    Specification = "", // 仕様カラムは存在しない
-                    Remarks = GetStringFromJsonElement(partElement, "備考"),
-                    Level = 0,
-                    Children = new List<PartNode>(),
-                    // 部品種別から判定
-                    IsUnit = GetIntFromJsonElement(partElement, "ユニット種別") > 0,
-                    IsOptionUnit = GetIntFromJsonElement(partElement, "オプションユニットFL") > 0
-                };
-
-                partLookup[partNode.PartId] = partNode;
-            }
-        }
-
-        // 2. 子部品関係データから親子関係を構築
+        await Task.Delay(1); // 非同期メソッドとするため
+        
         if (apiResponse.TryGetValue("childRelations", out var childObj) && childObj is JsonElement childElement)
         {
+            // 親部品IDごとにグループ化
+            var childRelations = new Dictionary<string, List<JsonElement>>();
+            
             foreach (var relationElement in childElement.EnumerateArray())
             {
                 var parentId = GetStringFromJsonElement(relationElement, "親部品コード");
-                var childId = GetStringFromJsonElement(relationElement, "子部品コード");
-                var quantity = GetIntFromJsonElement(relationElement, "個数");
-
-                // 子部品がpartLookupに存在しない場合は作成
-                if (!partLookup.ContainsKey(childId))
+                if (!childRelations.ContainsKey(parentId))
                 {
-                    var childNode = new PartNode
-                    {
-                        PartId = childId,
-                        PartNumber = GetStringFromJsonElement(relationElement, "子品番"),
-                        PartName = GetStringFromJsonElement(relationElement, "子品名"),
-                        Quantity = quantity,
-                        Unit = "", // 単位カラムは存在しない
-                        Manufacturer = GetStringFromJsonElement(relationElement, "子メーカー"),
-                        Material = GetStringFromJsonElement(relationElement, "子材質"),
-                        Model = GetStringFromJsonElement(relationElement, "子型式"),
-                        Specification = "", // 仕様カラムは存在しない
-                        Remarks = GetStringFromJsonElement(relationElement, "子備考"),
-                        Level = 1,
-                        Children = new List<PartNode>(),
-                        // 子部品種別から判定
-                        IsUnit = GetIntFromJsonElement(relationElement, "子ユニット種別") > 0,
-                        IsOptionUnit = GetIntFromJsonElement(relationElement, "子オプションユニットFL") > 0
-                    };
-
-                    partLookup[childId] = childNode;
+                    childRelations[parentId] = new List<JsonElement>();
                 }
-
-                childRelations.Add((parentId, childId, quantity));
+                childRelations[parentId].Add(relationElement);
             }
-        }
-
-        // 3. 親子関係を設定
-        foreach (var (parentId, childId, quantity) in childRelations)
-        {
-            if (partLookup.TryGetValue(parentId, out var parent) && partLookup.TryGetValue(childId, out var child))
+            
+            // 各部品に子部品を設定
+            foreach (var part in allParts)
             {
-                child.Parent = parent;
-                child.Level = parent.Level + 1;
-                child.Quantity = quantity; // 親子関係の数量で上書き
-                
-                parent.Children.Add(child);
-                parent.HasChildren = true;
-                parent.ChildrenLoaded = true;
-                parent.IsUnit = true; // 子部品を持つ場合はユニット扱い
+                if (childRelations.ContainsKey(part.PartId.ToString()))
+                {
+                    foreach (var relationElement in childRelations[part.PartId.ToString()])
+                    {
+                        var childUnitType = GetIntFromJsonElement(relationElement, "子ユニット種別");
+                        var childOptionUnitFlag = GetIntFromJsonElement(relationElement, "子オプションユニットFL");
+                        
+                        var childPart = new Part
+                        {
+                            PartId = GetIntFromJsonElement(relationElement, "子部品コード"),
+                            PartNumber = GetStringFromJsonElement(relationElement, "子品番"),
+                            PartName = GetStringFromJsonElement(relationElement, "子品名"),
+                            Quantity = Math.Max(1, GetIntFromJsonElement(relationElement, "個数")),
+                            Manufacturer = GetStringFromJsonElement(relationElement, "子メーカー"),
+                            Material = GetStringFromJsonElement(relationElement, "子材質"),
+                            Model = GetStringFromJsonElement(relationElement, "子型式"),
+                            Remarks = GetStringFromJsonElement(relationElement, "子備考"),
+                            UnitType = childUnitType,
+                            OptionUnitFlag = childOptionUnitFlag,
+                            IsUnit = childUnitType > 0,
+                            IsOptionUnit = childOptionUnitFlag != 0, // 0以外（1または-1）をオプションとする
+                            Level = part.Level + 1,
+                            Parent = part
+                        };
+                        part.Children.Add(childPart);
+                    }
+                    part.ChildrenLoaded = true;
+                }
             }
         }
-
-        // 4. 最上位部品のみを階層データに設定（親を持たない部品）
-        hierarchyParts = partLookup.Values.Where(p => p.Parent == null).ToList();
     }
-
-    private string GetStringFromJsonElement(JsonElement element, string propertyName)
-    {
-        if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null)
-        {
-            return prop.GetString() ?? "";
-        }
-        return "";
-    }
-
+    
     private int GetIntFromJsonElement(JsonElement element, string propertyName)
     {
         if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null)
@@ -574,26 +645,317 @@
                 return result;
             }
         }
-        return 1; // デフォルト値
-    }
-    
-    private async Task LoadChildParts(PartNode node)
-    {
-        // 子部品の遅延読み込み（APIから取得）
-        // 現在はサンプルデータなので、既に読み込み済み
-        await Task.Delay(100);
-        node.ChildrenLoaded = true;
-    }
-    
-    private void SortChildrenRecursively(List<PartNode> nodes)
-    {
-        foreach (var node in nodes)
+        // ユニット種別系は0をデフォルトに、個数系は1をデフォルトに
+        if (propertyName.Contains("ユニット") || propertyName.Contains("オプション"))
         {
-            if (node.HasChildren && node.Children.Count > 0)
+            return 0;
+        }
+        return 1;
+    }
+    
+    private string GetStringFromJsonElement(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null)
+        {
+            return prop.GetString() ?? "";
+        }
+        return "";
+    }
+    
+    private bool GetBoolFromJsonElement(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null)
+        {
+            if (prop.ValueKind == JsonValueKind.True || prop.ValueKind == JsonValueKind.False)
             {
-                node.Children = node.Children.OrderBy(c => c.PartNumber).ToList();
-                SortChildrenRecursively(node.Children);
+                return prop.GetBoolean();
+            }
+            if (bool.TryParse(prop.GetString(), out bool result))
+            {
+                return result;
             }
         }
+        return false;
     }
-} 
+    
+    private void UpdateDisplayParts()
+    {
+        if (currentDisplayMode == PartsDisplayMode.Hierarchy)
+        {
+            // 階層表示：展開された部品を含む線形リスト
+            displayParts = GetLinearPartsForDisplay(allParts);
+        }
+        else
+        {
+            // 集計表示：最下位部品のみを集計（後で実装）
+            summaryParts = new List<PartSummary>();
+        }
+        
+        // 現在のページが有効範囲を超えている場合のみページをリセット
+        var maxPage = (int)Math.Ceiling((double)displayParts.Count / pageSize);
+        if (currentPage > maxPage && maxPage > 0)
+        {
+            currentPage = maxPage;
+        }
+        
+        StateHasChanged();
+    }
+    
+    private List<Part> GetLinearPartsForDisplay(List<Part> parts)
+    {
+        var result = new List<Part>();
+        
+        foreach (var part in parts.OrderBy(p => p.PartNumber))
+        {
+            result.Add(part);
+            
+            if (part.IsExpanded && part.Children.Count > 0)
+            {
+                result.AddRange(GetLinearPartsForDisplay(part.Children));
+            }
+        }
+        
+        return result;
+    }
+    
+    private List<Part> GetCurrentPageParts()
+    {
+        var startIndex = (currentPage - 1) * pageSize;
+        return displayParts.Skip(startIndex).Take(pageSize).ToList();
+    }
+    
+    // 画面4と同じ展開/折りたたみロジック
+    private async Task ToggleExpand(Part part)
+    {
+        if (!part.IsUnit)
+            return;
+        
+        if (!part.ChildrenLoaded && !part.IsLoading)
+        {
+            // 子部品を初めて取得する場合
+            await LoadChildParts(part);
+        }
+        else
+        {
+            // すでに取得済みの場合は展開状態を切り替え
+            part.IsExpanded = !part.IsExpanded;
+            UpdateDisplayParts();
+        }
+    }
+    
+    // 子部品を動的に取得（T_個体部品子部品サブから）
+    private async Task LoadChildParts(Part part)
+    {
+        if (part.ChildrenLoaded || part.IsLoading)
+            return;
+
+        part.IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // 既に初期読み込み時に全ての子部品関係は読み込み済みなので、
+            // ここではすでに設定されている子部品を表示するだけ
+            part.IsExpanded = true;
+            part.ChildrenLoaded = true;
+            UpdateDisplayParts();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"子部品読み込みエラー: {ex.Message}");
+        }
+        finally
+        {
+            part.IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private void OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newPageSize))
+        {
+            pageSize = newPageSize;
+            currentPage = 1;
+            StateHasChanged();
+        }
+    }
+    
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task LoadPartsData()
+    {
+        await FetchPartsFromMachineSpec();
+    }
+    
+    // 画面4と同じPartクラス
+    public class Part
+    {
+        public int PartId { get; set; }
+        public string PartNumber { get; set; } = "";
+        public string PartName { get; set; } = "";
+        public int Quantity { get; set; }
+        public string Manufacturer { get; set; } = "";
+        public string Material { get; set; } = "";
+        public string Model { get; set; } = "";
+        public string Remarks { get; set; } = "";
+        public bool IsUnit { get; set; }
+        public bool IsOptionUnit { get; set; }
+        
+        // デバッグ用：元の値を保持
+        public int UnitType { get; set; }
+        public int OptionUnitFlag { get; set; }
+        
+        // ツリー表示用の追加プロパティ
+        public List<Part> Children { get; set; } = new List<Part>();
+        public bool IsExpanded { get; set; } = false;
+        public bool IsLoading { get; set; } = false;
+        public bool ChildrenLoaded { get; set; } = false;
+        public int Level { get; set; } = 0;
+        public Part? Parent { get; set; } = null;
+    }
+    
+    // 画面4と同じRenderPartRowメソッド
+    private RenderFragment RenderPartRow(Part part) => builder =>
+    {
+        // 行の開始
+        builder.OpenElement(0, "tr");
+        builder.AddAttribute(1, "class", part.Level > 0 ? "child-part" : "");
+        
+        // 展開/折りたたみアイコン列
+        builder.OpenElement(2, "td");
+        builder.AddAttribute(3, "style", $"padding-left: {part.Level * 20}px;");
+        
+        if (part.IsUnit)
+        {
+            builder.OpenElement(4, "span");
+            builder.AddAttribute(5, "class", "cursor-pointer");
+            builder.AddAttribute(6, "onclick", EventCallback.Factory.Create(this, () => ToggleExpand(part)));
+            
+            if (part.IsLoading)
+            {
+                builder.OpenElement(7, "i");
+                builder.AddAttribute(8, "class", "spinner-border spinner-border-sm");
+                builder.CloseElement(); // spinner
+            }
+            else if (part.IsExpanded)
+            {
+                builder.AddContent(9, "▼");
+            }
+            else
+            {
+                builder.AddContent(10, "▶");
+            }
+            
+            builder.CloseElement(); // span
+        }
+        
+        builder.CloseElement(); // td
+        
+        // 階層番号
+        builder.OpenElement(11, "td");
+        builder.AddAttribute(12, "class", "text-center");
+        builder.AddContent(13, (part.Level + 1).ToString());
+        builder.CloseElement();
+        
+        // 品番
+        builder.OpenElement(14, "td");
+        builder.AddAttribute(15, "style", part.Level > 0 ? $"padding-left: {part.Level * 10}px;" : "");
+        builder.AddContent(16, part.PartNumber);
+        builder.CloseElement();
+        
+        // 品名
+        builder.OpenElement(17, "td");
+        builder.AddContent(18, part.PartName);
+        builder.CloseElement();
+        
+        // 数量
+        builder.OpenElement(19, "td");
+        builder.AddAttribute(20, "class", "text-end");
+        builder.AddContent(21, part.Quantity);
+        builder.CloseElement();
+        
+        // メーカー
+        builder.OpenElement(22, "td");
+        builder.AddContent(23, part.Manufacturer);
+        builder.CloseElement();
+        
+        // 材質
+        builder.OpenElement(24, "td");
+        builder.AddContent(25, part.Material);
+        builder.CloseElement();
+        
+        // 型式
+        builder.OpenElement(26, "td");
+        builder.AddContent(27, part.Model);
+        builder.CloseElement();
+        
+        // 備考
+        builder.OpenElement(28, "td");
+        builder.AddContent(29, part.Remarks);
+        builder.CloseElement();
+        
+        // ユニット種別
+        builder.OpenElement(30, "td");
+        builder.AddAttribute(31, "class", "text-center");
+        builder.AddContent(32, part.UnitType.ToString());
+        builder.CloseElement();
+        
+        // オプションFL
+        builder.OpenElement(33, "td");
+        builder.AddAttribute(34, "class", "text-center");
+        builder.AddContent(35, part.OptionUnitFlag.ToString());
+        builder.CloseElement();
+        
+        // 種別
+        builder.OpenElement(36, "td");
+        if (part.IsOptionUnit)
+        {
+            builder.OpenElement(37, "span");
+            builder.AddAttribute(38, "class", "badge bg-warning text-dark");
+            builder.AddContent(39, "オプション");
+            builder.CloseElement();
+        }
+        else if (part.IsUnit)
+        {
+            builder.OpenElement(40, "span");
+            builder.AddAttribute(41, "class", "badge bg-info");
+            builder.AddContent(42, "ユニット");
+            builder.CloseElement();
+        }
+        else if (part.Children.Count > 0)
+        {
+            builder.OpenElement(43, "span");
+            builder.AddAttribute(44, "class", "badge bg-secondary");
+            builder.AddContent(45, "セット");
+            builder.CloseElement();
+        }
+        else
+        {
+            builder.OpenElement(46, "span");
+            builder.AddAttribute(47, "class", "badge bg-light text-dark");
+            builder.AddContent(48, "部品");
+            builder.CloseElement();
+        }
+        builder.CloseElement(); // td
+        
+        builder.CloseElement(); // tr
+        
+        // 子部品を再帰的にレンダリング
+        if (part.IsExpanded && part.Children.Count > 0)
+        {
+            foreach (var child in part.Children)
+            {
+                builder.AddContent(37, RenderPartRow(child));
+            }
+        }
+    };
+}
+

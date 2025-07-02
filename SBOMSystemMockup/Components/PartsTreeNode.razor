@@ -103,7 +103,7 @@
     
     <!-- 階層 -->
     <td class="text-center align-middle">
-        <span class="badge bg-secondary">@Node.Level</span>
+        <span class="badge @(Node.Level == 1 ? "bg-primary" : "bg-secondary")">@Node.Level</span>
     </td>
     
     <!-- 品番 -->
