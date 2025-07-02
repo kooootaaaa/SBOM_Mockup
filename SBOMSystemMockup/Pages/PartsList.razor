@@ -3,6 +3,8 @@
 @using System.Collections.Generic
 @using System.Linq
 @using System.Text.Json
+@using SBOMSystemMockup.Models
+@using SBOMSystemMockup.Components
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 
@@ -165,9 +167,8 @@
     <div class="card-body py-3">
         <div class="d-flex align-items-center flex-wrap gap-3">
             <div class="option-group">
-                <label class="mb-0"><input type="radio" name="viewMode" value="normal" checked @onchange="@(() => viewMode = "normal")" /> 通常</label>
-                <label class="mb-0 ms-3"><input type="radio" name="viewMode" value="hierarchy" @onchange="@(() => viewMode = "hierarchy")" /> 階層表示</label>
-                <label class="mb-0 ms-3"><input type="radio" name="viewMode" value="expand" @onchange="@(() => viewMode = "expand")" /> 部品展開</label>
+                <label class="mb-0"><input type="radio" name="viewMode" value="hierarchy" checked @onchange="@(() => ChangeDisplayMode(PartsDisplayMode.Hierarchy))" /> 階層表示</label>
+                <label class="mb-0 ms-3"><input type="radio" name="viewMode" value="summary" @onchange="@(() => ChangeDisplayMode(PartsDisplayMode.Summary))" /> 集計表示</label>
             </div>
             <button class="btn btn-success btn-compact" @onclick="TogglePartsDisplay">部品表示</button>
             <button class="btn btn-modern-primary btn-compact" @onclick="@(() => NavTo($"/machine/{MachineId}/partsfetch"))">部品情報取得画面を開く</button>
@@ -180,106 +181,23 @@
 
 @if (showParts)
 {
-    <div class="card shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0">
-            <thead class="table-light">
-            <tr>
-                @if (viewMode == "hierarchy")
-                {
-                    <th style="width: 30px;"></th>
-                }
-                <th class="border-0 py-2 text-muted small fw-semibold">品番</th>
-                <th class="border-0 py-2 text-muted small fw-semibold">品名</th>
-                <th class="border-0 py-2 text-muted small fw-semibold">数量</th>
-                <th class="border-0 py-2 text-muted small fw-semibold">単位</th>
-                <th class="border-0 py-2 text-muted small fw-semibold">メーカー</th>
-                <th class="border-0 py-2 text-muted small fw-semibold">材質</th>
-                <th class="border-0 py-2 text-muted small fw-semibold">型式</th>
-                <th class="border-0 py-2 text-muted small fw-semibold">仕様</th>
-                <th class="border-0 py-2 text-muted small fw-semibold">備考</th>
-                @if (viewMode == "normal")
-                {
-                    <th class="border-0 py-2 text-muted small fw-semibold text-center" style="width: 100px;">操作</th>
-                }
-            </tr>
-        </thead>
-        <tbody>
-            @if (viewMode == "normal")
-            {
-                @foreach (var part in GetNormalParts())
-                {
-                    <tr class="border-bottom">
-                        <td class="py-1 align-middle small">@part.PartNumber</td>
-                        <td class="py-1 align-middle small">@part.PartName</td>
-                        <td class="py-1 align-middle text-end small">@part.Quantity</td>
-                        <td class="py-1 align-middle small">@part.Unit</td>
-                        <td class="py-1 align-middle small">@part.Manufacturer</td>
-                        <td class="py-1 align-middle small">@part.Material</td>
-                        <td class="py-1 align-middle small">@part.Model</td>
-                        <td class="py-1 align-middle small">@part.Specification</td>
-                        <td class="py-1 align-middle small">@part.Remarks</td>
-                        <td class="py-1 align-middle text-center">
-                            <button class="btn btn-outline-primary btn-sm px-2 py-1" @onclick="() => ChangePart(part)">
-                                <i class="bi bi-pencil me-1"></i>変更
-                            </button>
-                        </td>
-                    </tr>
-                }
-            }
-            else if (viewMode == "hierarchy")
-            {
-                @foreach (var part in GetHierarchicalParts())
-                {
-                    <tr class="border-bottom">
-                        <td class="py-1 align-middle">
-                            @if (part.HasChildren)
-                            {
-                                <button class="btn btn-sm btn-link p-0" @onclick="() => ToggleExpand(part.PartNumber)">
-                                    @if (expandedParts.Contains(part.PartNumber))
-                                    {
-                                        <i class="bi bi-chevron-down"></i>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-chevron-right"></i>
-                                    }
-                                </button>
-                            }
-                        </td>
-                        <td class="py-1 align-middle small" style="padding-left: @(part.Level * 20 + 8)px;">@part.PartNumber</td>
-                        <td class="py-1 align-middle small">@part.PartName</td>
-                        <td class="py-1 align-middle text-end small">@part.Quantity</td>
-                        <td class="py-1 align-middle small">@part.Unit</td>
-                        <td class="py-1 align-middle small">@part.Manufacturer</td>
-                        <td class="py-1 align-middle small">@part.Material</td>
-                        <td class="py-1 align-middle small">@part.Model</td>
-                        <td class="py-1 align-middle small">@part.Specification</td>
-                        <td class="py-1 align-middle small">@part.Remarks</td>
-                    </tr>
-                }
-            }
-            else if (viewMode == "expand")
-            {
-                @foreach (var part in GetExpandedParts())
-                {
-                    <tr class="border-bottom">
-                        <td class="py-1 align-middle small">@part.PartNumber</td>
-                        <td class="py-1 align-middle small">@part.PartName</td>
-                        <td class="py-1 align-middle text-end small">@part.Quantity</td>
-                        <td class="py-1 align-middle small">@part.Unit</td>
-                        <td class="py-1 align-middle small">@part.Manufacturer</td>
-                        <td class="py-1 align-middle small">@part.Material</td>
-                        <td class="py-1 align-middle small">@part.Model</td>
-                        <td class="py-1 align-middle small">@part.Specification</td>
-                        <td class="py-1 align-middle small">@part.Remarks</td>
-                    </tr>
-                }
-            }
-            </tbody>
-            </table>
-        </div>
-    </div>
+    @if (currentDisplayMode == PartsDisplayMode.Hierarchy)
+    {
+        <PartsTreeView 
+            Parts="hierarchyParts" 
+            IsLoading="isPartsLoading"
+            ShowActions="false"
+            OnRefresh="LoadPartsData"
+            OnLoadChildren="LoadChildParts" />
+    }
+    else if (currentDisplayMode == PartsDisplayMode.Summary)
+    {
+        <PartsSummaryView 
+            SummaryParts="summaryParts" 
+            IsLoading="isPartsLoading"
+            ShowActions="false"
+            OnRefresh="LoadPartsData" />
+    }
 }
 
 
@@ -288,8 +206,12 @@
     [Inject] NavigationManager Nav { get; set; } = default!;
     
     private bool showParts = false;
-    private string viewMode = "normal";
-    private HashSet<string> expandedParts = new HashSet<string>();
+    private PartsDisplayMode currentDisplayMode = PartsDisplayMode.Hierarchy;
+    
+    // 新しいデータモデル
+    private List<PartNode> hierarchyParts = new List<PartNode>();
+    private List<PartSummary> summaryParts = new List<PartSummary>();
+    private bool isPartsLoading = false;
     
     // 機械情報を保持する変数
     private string? serialNumber;  // 製造番号
@@ -440,142 +362,126 @@
         return null;
     }
     
-    public class Part
-    {
-        public string PartNumber { get; set; } = "";
-        public string PartName { get; set; } = "";
-        public int Quantity { get; set; }
-        public string Unit { get; set; } = "個";
-        public string Manufacturer { get; set; } = "";
-        public string Material { get; set; } = "";
-        public string Model { get; set; } = "";
-        public string Specification { get; set; } = "";
-        public string Remarks { get; set; } = "";
-        public bool HasChildren { get; set; }
-        public int Level { get; set; }
-        public string ParentPartNumber { get; set; } = "";
-        public List<Part> Children { get; set; } = new List<Part>();
-    }
-    
-    private List<Part> allParts = new List<Part>
-    {
-        new Part { PartNumber = "MS-12345", PartName = "サーボモーター", Quantity = 2, Manufacturer = "三菱電機", Material = "アルミニウム合金", Model = "HG-KR43B", Specification = "400W", Remarks = "高精度位置決め用" },
-        new Part { PartNumber = "BT-5678", PartName = "タイミングベルト", Quantity = 3, Manufacturer = "ゲイツ", Material = "ゴム（EPDM）", Model = "8M-1000-20", Specification = "歯数125", Remarks = "定期交換推奨" },
-        new Part { PartNumber = "PS-9012", PartName = "近接センサー", Quantity = 4, Manufacturer = "オムロン", Material = "ステンレス（SUS304）", Model = "E2E-X5ME1", Specification = "検出距離5mm", Remarks = "" },
-        new Part { PartNumber = "CY-3456", PartName = "エアシリンダー", Quantity = 1, Manufacturer = "SMC", Material = "アルミニウム", Model = "CDQ2B40-30DZ", Specification = "φ40×30", Remarks = "複動式、磁石付き" },
-        new Part { PartNumber = "VL-7890", PartName = "電磁弁", Quantity = 2, Manufacturer = "CKD", Material = "真鍮", Model = "4GD210-08", Specification = "5ポート2位置", Remarks = "DC24V仕様" },
-        new Part { PartNumber = "SET-001", PartName = "駆動ユニット", Quantity = 1, Unit = "式", Manufacturer = "自社", Material = "-", Model = "DRV-UNIT-01", Specification = "組立品", Remarks = "サーボモーター含む", HasChildren = true },
-        new Part { PartNumber = "BR-2345", PartName = "ブラケット", Quantity = 4, Manufacturer = "自社", Material = "SS400", Model = "BRK-100", Specification = "t=6mm", Remarks = "", ParentPartNumber = "SET-001" },
-        new Part { PartNumber = "SC-5678", PartName = "M6ボルト", Quantity = 16, Manufacturer = "ミスミ", Material = "SUS304", Model = "HXNB6-20", Specification = "M6×20", Remarks = "", ParentPartNumber = "SET-001" },
-        new Part { PartNumber = "SET-002", PartName = "センサーユニット", Quantity = 1, Unit = "式", Manufacturer = "自社", Material = "-", Model = "SEN-UNIT-01", Specification = "組立品", Remarks = "近接センサー4個含む", HasChildren = true },
-        new Part { PartNumber = "CB-1234", PartName = "ケーブル", Quantity = 4, Unit = "本", Manufacturer = "オムロン", Material = "PVC", Model = "XS3F-M421-402-A", Specification = "2m", Remarks = "", ParentPartNumber = "SET-002" }
-    };
+    // 新しいメソッド群
     
     void NavTo(string url) => Nav.NavigateTo(url);
     
     void TogglePartsDisplay()
     {
         showParts = !showParts;
-    }
-    
-    void ToggleExpand(string partNumber)
-    {
-        if (expandedParts.Contains(partNumber))
-            expandedParts.Remove(partNumber);
-        else
-            expandedParts.Add(partNumber);
-    }
-    
-    List<Part> GetNormalParts()
-    {
-        return allParts.Where(p => string.IsNullOrEmpty(p.ParentPartNumber)).ToList();
-    }
-    
-    List<Part> GetHierarchicalParts()
-    {
-        var result = new List<Part>();
-        var rootParts = allParts.Where(p => string.IsNullOrEmpty(p.ParentPartNumber)).ToList();
-        
-        foreach (var part in rootParts)
+        if (showParts && hierarchyParts.Count == 0)
         {
-            AddPartWithChildren(result, part, 0);
-        }
-        
-        return result;
-    }
-    
-    void AddPartWithChildren(List<Part> result, Part part, int level)
-    {
-        part.Level = level;
-        result.Add(part);
-        
-        if (part.HasChildren && expandedParts.Contains(part.PartNumber))
-        {
-            var children = allParts.Where(p => p.ParentPartNumber == part.PartNumber).ToList();
-            foreach (var child in children)
-            {
-                AddPartWithChildren(result, child, level + 1);
-            }
+            // 初回表示時にデータを読み込み
+            _ = LoadPartsData();
         }
     }
     
-    List<Part> GetExpandedParts()
+    private async Task ChangeDisplayMode(PartsDisplayMode newMode)
     {
-        var result = new Dictionary<string, Part>();
-        var rootParts = allParts.Where(p => string.IsNullOrEmpty(p.ParentPartNumber)).ToList();
-        
-        foreach (var part in rootParts)
+        if (currentDisplayMode != newMode)
         {
-            if (part.HasChildren)
+            currentDisplayMode = newMode;
+            await LoadPartsData();
+        }
+    }
+    
+    private async Task LoadPartsData()
+    {
+        isPartsLoading = true;
+        try
+        {
+            // サンプルデータを読み込み（実際のAPIに置き換え予定）
+            await LoadSamplePartsData();
+            
+            // 表示モードに応じて集計データを生成
+            if (currentDisplayMode == PartsDisplayMode.Summary)
             {
-                var children = allParts.Where(p => p.ParentPartNumber == part.PartNumber).ToList();
-                foreach (var child in children)
-                {
-                    if (result.ContainsKey(child.PartNumber))
-                    {
-                        result[child.PartNumber].Quantity += child.Quantity * part.Quantity;
-                    }
-                    else
-                    {
-                        var expandedPart = new Part
-                        {
-                            PartNumber = child.PartNumber,
-                            PartName = child.PartName,
-                            Quantity = child.Quantity * part.Quantity,
-                            Unit = child.Unit,
-                            Manufacturer = child.Manufacturer,
-                            Material = child.Material,
-                            Model = child.Model,
-                            Specification = child.Specification,
-                            Remarks = child.Remarks
-                        };
-                        result[child.PartNumber] = expandedPart;
-                    }
-                }
-            }
-            else
-            {
-                if (result.ContainsKey(part.PartNumber))
-                {
-                    result[part.PartNumber].Quantity += part.Quantity;
-                }
-                else
-                {
-                    result[part.PartNumber] = part;
-                }
+                summaryParts = PartsTreeHelper.GenerateSummary(hierarchyParts);
+                summaryParts = PartsTreeHelper.SortSummary(summaryParts, PartsSortMode.PartNumber);
             }
         }
+        catch (Exception ex)
+        {
+            errorMessage = $"部品データ取得エラー: {ex.Message}";
+            Console.WriteLine($"部品データ取得エラー: {ex.Message}");
+        }
+        finally
+        {
+            isPartsLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task LoadSamplePartsData()
+    {
+        // サンプルデータ（実際のAPIからの取得に置き換える予定）
+        await Task.Delay(500); // API呼び出しのシミュレーション
         
-        return result.Values.OrderBy(p => p.PartNumber).ToList();
+        hierarchyParts = new List<PartNode>
+        {
+            new PartNode { PartId = "1", PartNumber = "MS-12345", PartName = "サーボモーター", Quantity = 2, Unit = "個", Manufacturer = "三菱電機", Material = "アルミニウム合金", Model = "HG-KR43B", Specification = "400W", Remarks = "高精度位置決め用" },
+            new PartNode { PartId = "2", PartNumber = "BT-5678", PartName = "タイミングベルト", Quantity = 3, Unit = "個", Manufacturer = "ゲイツ", Material = "ゴム（EPDM）", Model = "8M-1000-20", Specification = "歯数125", Remarks = "定期交換推奨" },
+            new PartNode { PartId = "3", PartNumber = "PS-9012", PartName = "近接センサー", Quantity = 4, Unit = "個", Manufacturer = "オムロン", Material = "ステンレス（SUS304）", Model = "E2E-X5ME1", Specification = "検出距離5mm", Remarks = "" },
+            new PartNode { PartId = "4", PartNumber = "CY-3456", PartName = "エアシリンダー", Quantity = 1, Unit = "個", Manufacturer = "SMC", Material = "アルミニウム", Model = "CDQ2B40-30DZ", Specification = "φ40×30", Remarks = "複動式、磁石付き" },
+            new PartNode { PartId = "5", PartNumber = "VL-7890", PartName = "電磁弁", Quantity = 2, Unit = "個", Manufacturer = "CKD", Material = "真鍮", Model = "4GD210-08", Specification = "5ポート2位置", Remarks = "DC24V仕様" },
+            new PartNode 
+            { 
+                PartId = "6", 
+                PartNumber = "SET-001", 
+                PartName = "駆動ユニット", 
+                Quantity = 1, 
+                Unit = "式", 
+                Manufacturer = "自社", 
+                Material = "-", 
+                Model = "DRV-UNIT-01", 
+                Specification = "組立品", 
+                Remarks = "サーボモーター含む", 
+                HasChildren = true,
+                IsUnit = true,
+                Children = new List<PartNode>
+                {
+                    new PartNode { PartId = "7", PartNumber = "BR-2345", PartName = "ブラケット", Quantity = 4, Unit = "個", Manufacturer = "自社", Material = "SS400", Model = "BRK-100", Specification = "t=6mm", Remarks = "", Level = 1 },
+                    new PartNode { PartId = "8", PartNumber = "SC-5678", PartName = "M6ボルト", Quantity = 16, Unit = "個", Manufacturer = "ミスミ", Material = "SUS304", Model = "HXNB6-20", Specification = "M6×20", Remarks = "", Level = 1 }
+                }
+            },
+            new PartNode 
+            { 
+                PartId = "9", 
+                PartNumber = "SET-002", 
+                PartName = "センサーユニット", 
+                Quantity = 1, 
+                Unit = "式", 
+                Manufacturer = "自社", 
+                Material = "-", 
+                Model = "SEN-UNIT-01", 
+                Specification = "組立品", 
+                Remarks = "近接センサー4個含む", 
+                HasChildren = true,
+                IsUnit = true,
+                Children = new List<PartNode>
+                {
+                    new PartNode { PartId = "10", PartNumber = "CB-1234", PartName = "ケーブル", Quantity = 4, Unit = "本", Manufacturer = "オムロン", Material = "PVC", Model = "XS3F-M421-402-A", Specification = "2m", Remarks = "", Level = 1 }
+                }
+            }
+        };
+        
+        // 子部品の親参照を設定
+        foreach (var parent in hierarchyParts.Where(p => p.HasChildren))
+        {
+            foreach (var child in parent.Children)
+            {
+                child.Parent = parent;
+                child.Level = parent.Level + 1;
+            }
+            parent.ChildrenLoaded = true;
+        }
     }
     
-    void ChangePart(Part part)
+    private async Task LoadChildParts(PartNode node)
     {
-        NavTo($"/machine/{MachineId}/partschange");
-    }
-    
-    void DeletePart(Part part)
-    {
-        // 削除機能は後で実装
+        // 子部品の遅延読み込み（APIから取得）
+        // 現在はサンプルデータなので、既に読み込み済み
+        await Task.Delay(100);
+        node.ChildrenLoaded = true;
     }
 } 

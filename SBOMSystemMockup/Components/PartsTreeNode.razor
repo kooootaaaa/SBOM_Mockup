@@ -1,0 +1,208 @@
+@using SBOMSystemMockup.Models
+
+<style>
+    .tree-node-row {
+        transition: background-color 0.2s ease;
+    }
+    
+    .tree-node-row:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    .child-part {
+        background-color: #fdfdfe;
+    }
+    
+    .child-part td {
+        border-left: 3px solid #e9ecef;
+    }
+    
+    .expand-icon {
+        cursor: pointer;
+        user-select: none;
+        color: #6c757d;
+        transition: color 0.2s ease;
+    }
+    
+    .expand-icon:hover {
+        color: #0d6efd;
+    }
+    
+    .expand-icon.expanded {
+        color: #0d6efd;
+    }
+    
+    .part-level-indent {
+        display: inline-block;
+    }
+    
+    .part-info {
+        font-size: 0.875rem;
+    }
+    
+    .part-number {
+        font-weight: 600;
+        color: #212529;
+    }
+    
+    .part-name {
+        color: #495057;
+    }
+    
+    .quantity-cell {
+        font-weight: 600;
+        color: #0d6efd;
+    }
+    
+    .unit-badge {
+        background: #e9ecef;
+        color: #495057;
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+    }
+    
+    .type-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .loading-cell {
+        text-align: center;
+        color: #6c757d;
+    }
+</style>
+
+<!-- 現在のノード -->
+<tr class="tree-node-row @(Node.Level > 0 ? "child-part" : "")" 
+    style="@(Node.Level > 0 ? $"background-color: rgba(248, 249, 250, {Math.Min(0.8, 0.1 + (Node.Level * 0.1))});" : "")">
+    
+    <!-- 展開/折りたたみアイコン -->
+    <td class="text-center align-middle">
+        <span class="part-level-indent" style="width: @(Node.Level * 20)px;"></span>
+        @if (Node.HasChildren)
+        {
+            @if (Node.IsLoading)
+            {
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">読み込み中...</span>
+                </div>
+            }
+            else
+            {
+                <i class="bi @(Node.IsExpanded ? "bi-chevron-down" : "bi-chevron-right") expand-icon @(Node.IsExpanded ? "expanded" : "")"
+                   @onclick="() => OnToggleExpand.InvokeAsync(Node)"
+                   title="@(Node.IsExpanded ? "折りたたみ" : "展開")"></i>
+            }
+        }
+        else
+        {
+            <span class="part-level-indent" style="width: 16px;"></span>
+        }
+    </td>
+    
+    <!-- 品番 -->
+    <td class="align-middle">
+        <div class="part-info">
+            <span class="part-number">@Node.PartNumber</span>
+        </div>
+    </td>
+    
+    <!-- 品名 -->
+    <td class="align-middle">
+        <div class="part-info">
+            <span class="part-name" title="@Node.PartName">@Node.PartName</span>
+        </div>
+    </td>
+    
+    <!-- 数量 -->
+    <td class="text-end align-middle">
+        <span class="quantity-cell">@Node.Quantity</span>
+    </td>
+    
+    <!-- 単位 -->
+    <td class="align-middle">
+        @if (!string.IsNullOrEmpty(Node.Unit))
+        {
+            <span class="unit-badge">@Node.Unit</span>
+        }
+    </td>
+    
+    <!-- メーカー -->
+    <td class="align-middle">
+        <div class="part-info text-truncate" title="@Node.Manufacturer">
+            @Node.Manufacturer
+        </div>
+    </td>
+    
+    <!-- 材質 -->
+    <td class="align-middle">
+        <div class="part-info text-truncate" title="@Node.Material">
+            @Node.Material
+        </div>
+    </td>
+    
+    <!-- 型式 -->
+    <td class="align-middle">
+        <div class="part-info text-truncate" title="@Node.Model">
+            @Node.Model
+        </div>
+    </td>
+    
+    <!-- 種別 -->
+    <td class="text-center align-middle">
+        @if (Node.IsUnit)
+        {
+            @if (Node.IsOptionUnit)
+            {
+                <span class="badge bg-warning text-dark type-badge">オプション</span>
+            }
+            else
+            {
+                <span class="badge bg-info type-badge">ユニット</span>
+            }
+        }
+        else if (Node.HasChildren)
+        {
+            <span class="badge bg-secondary type-badge">セット</span>
+        }
+        else
+        {
+            <span class="badge bg-light text-dark type-badge">部品</span>
+        }
+    </td>
+    
+    <!-- 操作ボタン（オプション） -->
+    @if (ShowActions)
+    {
+        <td class="text-center align-middle">
+            <button class="btn btn-outline-primary btn-sm" 
+                    @onclick="() => OnPartAction.InvokeAsync(Node)"
+                    title="部品操作">
+                <i class="bi bi-gear"></i>
+            </button>
+        </td>
+    }
+</tr>
+
+<!-- 子ノードを再帰的に表示 -->
+@if (Node.IsExpanded && Node.Children.Count > 0)
+{
+    @foreach (var child in Node.Children)
+    {
+        <PartsTreeNode 
+            Node="child" 
+            OnToggleExpand="OnToggleExpand"
+            OnLoadChildren="OnLoadChildren"
+            ShowActions="ShowActions"
+            OnPartAction="OnPartAction" />
+    }
+}
+
+@code {
+    [Parameter] public PartNode Node { get; set; } = new PartNode();
+    [Parameter] public bool ShowActions { get; set; } = false;
+    [Parameter] public EventCallback<PartNode> OnToggleExpand { get; set; }
+    [Parameter] public EventCallback<PartNode> OnLoadChildren { get; set; }
+    [Parameter] public EventCallback<PartNode> OnPartAction { get; set; }
+}

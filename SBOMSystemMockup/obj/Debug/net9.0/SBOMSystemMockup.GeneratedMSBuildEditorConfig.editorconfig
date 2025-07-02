@@ -28,6 +28,18 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/k_yam/Dropbox/PC/Desktop/システム関連/Study/SBOM/SBOMSystemMockup/Components/PartsSummaryView.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYXJ0c1N1bW1hcnlWaWV3LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/k_yam/Dropbox/PC/Desktop/システム関連/Study/SBOM/SBOMSystemMockup/Components/PartsTreeNode.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYXJ0c1RyZWVOb2RlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/k_yam/Dropbox/PC/Desktop/システム関連/Study/SBOM/SBOMSystemMockup/Components/PartsTreeView.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYXJ0c1RyZWVWaWV3LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/k_yam/Dropbox/PC/Desktop/システム関連/Study/SBOM/SBOMSystemMockup/Pages/ApiTest.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXBpVGVzdC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 

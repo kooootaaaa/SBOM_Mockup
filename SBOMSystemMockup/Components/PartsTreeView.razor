@@ -1,0 +1,214 @@
+@using SBOMSystemMockup.Models
+@inject HttpClient Http
+
+<style>
+    .parts-tree-container {
+        background: white;
+        border-radius: 6px;
+    }
+    
+    .tree-controls {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        padding: 0.75rem 1rem;
+        border-radius: 6px 6px 0 0;
+    }
+    
+    .tree-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #495057;
+    }
+    
+    .tree-content {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .parts-tree-table {
+        margin-bottom: 0;
+    }
+    
+    .parts-tree-table th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 10;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+    }
+</style>
+
+<div class="parts-tree-container border">
+    <!-- ツリー操作コントロール -->
+    <div class="tree-controls">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <h6 class="mb-0 text-secondary">
+                    <i class="bi bi-diagram-3 me-1"></i>部品階層表示
+                </h6>
+                <span class="badge bg-info bg-opacity-10 text-info">
+                    @Parts.Count 件の最上位部品
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                @if (Parts.Any(p => p.HasChildren))
+                {
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="ExpandAll">
+                        <i class="bi bi-plus-square me-1"></i>全展開
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CollapseAll">
+                        <i class="bi bi-dash-square me-1"></i>全折りたたみ
+                    </button>
+                }
+                @if (OnRefresh.HasDelegate)
+                {
+                    <button class="btn btn-outline-primary btn-sm" @onclick="OnRefresh" disabled="@IsLoading">
+                        <i class="bi bi-arrow-clockwise me-1"></i>更新
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- ツリー表示テーブル -->
+    <div class="tree-content position-relative">
+        @if (IsLoading)
+        {
+            <div class="loading-overlay">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">読み込み中...</span>
+                </div>
+            </div>
+        }
+        
+        @if (Parts.Count == 0 && !IsLoading)
+        {
+            <div class="text-center p-4 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                <p class="mb-0">表示する部品がありません</p>
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm parts-tree-table">
+                <thead class="tree-header">
+                    <tr>
+                        <th style="width: 40px;" class="text-center">展開</th>
+                        <th style="width: 150px;">品番</th>
+                        <th>品名</th>
+                        <th style="width: 80px;" class="text-end">数量</th>
+                        <th style="width: 60px;">単位</th>
+                        <th style="width: 120px;">メーカー</th>
+                        <th style="width: 100px;">材質</th>
+                        <th style="width: 100px;">型式</th>
+                        <th style="width: 80px;" class="text-center">種別</th>
+                        @if (ShowActions)
+                        {
+                            <th style="width: 100px;" class="text-center">操作</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var part in Parts)
+                    {
+                        <PartsTreeNode 
+                            Node="part" 
+                            OnToggleExpand="HandleToggleExpand"
+                            OnLoadChildren="LoadChildParts"
+                            ShowActions="ShowActions"
+                            OnPartAction="OnPartAction" />
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<PartNode> Parts { get; set; } = new List<PartNode>();
+    [Parameter] public bool IsLoading { get; set; } = false;
+    [Parameter] public bool ShowActions { get; set; } = false;
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public EventCallback<PartNode> OnPartAction { get; set; }
+    [Parameter] public EventCallback<PartNode> OnLoadChildren { get; set; }
+
+    private async Task HandleToggleExpand(PartNode node)
+    {
+        node.IsExpanded = !node.IsExpanded;
+        
+        // 子部品がまだ読み込まれていない場合は読み込む
+        if (node.IsExpanded && !node.ChildrenLoaded && node.HasChildren)
+        {
+            await LoadChildParts(node);
+        }
+    }
+
+    private async Task LoadChildParts(PartNode node)
+    {
+        if (OnLoadChildren.HasDelegate)
+        {
+            node.IsLoading = true;
+            StateHasChanged();
+            
+            try
+            {
+                await OnLoadChildren.InvokeAsync(node);
+                node.ChildrenLoaded = true;
+                node.IsExpanded = true;
+            }
+            finally
+            {
+                node.IsLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void ExpandAll()
+    {
+        ExpandAllRecursive(Parts);
+        StateHasChanged();
+    }
+
+    private void ExpandAllRecursive(List<PartNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.HasChildren)
+            {
+                node.IsExpanded = true;
+                ExpandAllRecursive(node.Children);
+            }
+        }
+    }
+
+    private void CollapseAll()
+    {
+        CollapseAllRecursive(Parts);
+        StateHasChanged();
+    }
+
+    private void CollapseAllRecursive(List<PartNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            node.IsExpanded = false;
+            CollapseAllRecursive(node.Children);
+        }
+    }
+}

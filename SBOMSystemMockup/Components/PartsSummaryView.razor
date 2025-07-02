@@ -1,0 +1,432 @@
+@using SBOMSystemMockup.Models
+@inject HttpClient Http
+
+<style>
+    .parts-summary-container {
+        background: white;
+        border-radius: 6px;
+    }
+    
+    .summary-controls {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        padding: 0.75rem 1rem;
+        border-radius: 6px 6px 0 0;
+    }
+    
+    .summary-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #495057;
+    }
+    
+    .summary-content {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .parts-summary-table {
+        margin-bottom: 0;
+    }
+    
+    .parts-summary-table th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 10;
+        border-bottom: 2px solid #e9ecef;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s ease;
+    }
+    
+    .parts-summary-table th:hover {
+        background: #e9ecef;
+    }
+    
+    .parts-summary-table th.sorted {
+        background: #e7f3ff;
+        color: #0d6efd;
+    }
+    
+    .sort-icon {
+        font-size: 0.75rem;
+        margin-left: 0.25rem;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+    }
+    
+    .summary-row {
+        transition: background-color 0.2s ease;
+    }
+    
+    .summary-row:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    .part-number-cell {
+        font-weight: 600;
+        color: #212529;
+    }
+    
+    .part-name-cell {
+        color: #495057;
+    }
+    
+    .quantity-cell {
+        font-weight: 700;
+        color: #0d6efd;
+        font-size: 1rem;
+    }
+    
+    .high-quantity {
+        color: #dc3545 !important;
+        background: rgba(220, 53, 69, 0.1);
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+    
+    .usage-paths {
+        font-size: 0.75rem;
+        color: #6c757d;
+        line-height: 1.3;
+    }
+    
+    .usage-count-badge {
+        background: #e9ecef;
+        color: #495057;
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .manufacturer-cell {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .search-input {
+        max-width: 300px;
+    }
+    
+    .filter-controls {
+        gap: 1rem;
+    }
+</style>
+
+<div class="parts-summary-container border">
+    <!-- 集計表示コントロール -->
+    <div class="summary-controls">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div class="d-flex align-items-center gap-3">
+                <h6 class="mb-0 text-secondary">
+                    <i class="bi bi-bar-chart me-1"></i>部品集計表示
+                </h6>
+                <span class="badge bg-success bg-opacity-10 text-success">
+                    @SummaryParts.Count 種類の最下位部品
+                </span>
+                <span class="badge bg-primary bg-opacity-10 text-primary">
+                    総数量: @SummaryParts.Sum(p => p.TotalQuantity)
+                </span>
+            </div>
+            <div class="d-flex align-items-center filter-controls flex-wrap">
+                <!-- 検索フィルタ -->
+                <div class="input-group input-group-sm search-input">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control" 
+                           placeholder="部品番号・品名で検索..."
+                           @bind="searchText" 
+                           @bind:event="oninput" />
+                </div>
+                
+                <!-- メーカーフィルタ -->
+                <select class="form-select form-select-sm" style="width: auto;" 
+                        @bind="selectedManufacturer">
+                    <option value="">全メーカー</option>
+                    @foreach (var manufacturer in GetUniqueManufacturers())
+                    {
+                        <option value="@manufacturer">@manufacturer</option>
+                    }
+                </select>
+                
+                <!-- 更新ボタン -->
+                @if (OnRefresh.HasDelegate)
+                {
+                    <button class="btn btn-outline-primary btn-sm" @onclick="OnRefresh" disabled="@IsLoading">
+                        <i class="bi bi-arrow-clockwise me-1"></i>更新
+                    </button>
+                }
+                
+                <!-- エクスポートボタン -->
+                <button class="btn btn-outline-success btn-sm" @onclick="ExportToCsv">
+                    <i class="bi bi-download me-1"></i>CSV出力
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 集計表示テーブル -->
+    <div class="summary-content position-relative">
+        @if (IsLoading)
+        {
+            <div class="loading-overlay">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">読み込み中...</span>
+                </div>
+            </div>
+        }
+        
+        @if (filteredParts.Count == 0 && !IsLoading)
+        {
+            <div class="text-center p-4 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                <p class="mb-0">@(string.IsNullOrEmpty(searchText) ? "表示する部品がありません" : "検索条件に一致する部品がありません")</p>
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm parts-summary-table">
+                <thead class="summary-header">
+                    <tr>
+                        <th @onclick="() => SortBy(PartsSortMode.PartNumber)" class="@GetSortClass(PartsSortMode.PartNumber)">
+                            品番
+                            <i class="bi @GetSortIcon(PartsSortMode.PartNumber) sort-icon"></i>
+                        </th>
+                        <th @onclick="() => SortBy(PartsSortMode.PartName)" class="@GetSortClass(PartsSortMode.PartName)">
+                            品名
+                            <i class="bi @GetSortIcon(PartsSortMode.PartName) sort-icon"></i>
+                        </th>
+                        <th @onclick="() => SortBy(PartsSortMode.QuantityDesc)" class="text-end @GetSortClass(PartsSortMode.QuantityDesc)">
+                            合計数量
+                            <i class="bi @GetSortIcon(PartsSortMode.QuantityDesc) sort-icon"></i>
+                        </th>
+                        <th style="width: 60px;">単位</th>
+                        <th @onclick="() => SortBy(PartsSortMode.Manufacturer)" class="@GetSortClass(PartsSortMode.Manufacturer)">
+                            メーカー
+                            <i class="bi @GetSortIcon(PartsSortMode.Manufacturer) sort-icon"></i>
+                        </th>
+                        <th style="width: 100px;">材質</th>
+                        <th style="width: 100px;">型式</th>
+                        <th style="width: 80px;" class="text-center">使用箇所</th>
+                        <th style="width: 200px;">使用経路</th>
+                        @if (ShowActions)
+                        {
+                            <th style="width: 100px;" class="text-center">操作</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var part in filteredParts)
+                    {
+                        <tr class="summary-row">
+                            <td class="align-middle">
+                                <div class="part-number-cell">@part.PartNumber</div>
+                            </td>
+                            <td class="align-middle">
+                                <div class="part-name-cell" title="@part.PartName">@part.PartName</div>
+                            </td>
+                            <td class="text-end align-middle">
+                                <span class="quantity-cell @(part.TotalQuantity > 10 ? "high-quantity" : "")">
+                                    @part.TotalQuantity
+                                </span>
+                            </td>
+                            <td class="align-middle">
+                                @if (!string.IsNullOrEmpty(part.Unit))
+                                {
+                                    <span class="usage-count-badge">@part.Unit</span>
+                                }
+                            </td>
+                            <td class="align-middle">
+                                <div class="manufacturer-cell text-truncate" title="@part.Manufacturer">
+                                    @part.Manufacturer
+                                </div>
+                            </td>
+                            <td class="align-middle">
+                                <div class="text-truncate" title="@part.Material" style="font-size: 0.875rem;">
+                                    @part.Material
+                                </div>
+                            </td>
+                            <td class="align-middle">
+                                <div class="text-truncate" title="@part.Model" style="font-size: 0.875rem;">
+                                    @part.Model
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <span class="usage-count-badge">@part.UniqueUsageCount 箇所</span>
+                            </td>
+                            <td class="align-middle">
+                                <div class="usage-paths">
+                                    @foreach (var path in part.UsagePaths.Take(3))
+                                    {
+                                        <div class="text-truncate" title="@path">@path</div>
+                                    }
+                                    @if (part.UsagePaths.Count > 3)
+                                    {
+                                        <small class="text-muted">...他 @(part.UsagePaths.Count - 3) 件</small>
+                                    }
+                                </div>
+                            </td>
+                            @if (ShowActions)
+                            {
+                                <td class="text-center align-middle">
+                                    <button class="btn btn-outline-primary btn-sm" 
+                                            @onclick="() => OnPartAction.InvokeAsync(CreatePartNodeFromSummary(part))"
+                                            title="部品操作">
+                                        <i class="bi bi-gear"></i>
+                                    </button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<PartSummary> SummaryParts { get; set; } = new List<PartSummary>();
+    [Parameter] public bool IsLoading { get; set; } = false;
+    [Parameter] public bool ShowActions { get; set; } = false;
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public EventCallback<PartNode> OnPartAction { get; set; }
+
+    private List<PartSummary> filteredParts = new List<PartSummary>();
+    private string _searchText = "";
+    private string searchText 
+    { 
+        get => _searchText;
+        set 
+        {
+            _searchText = value;
+            FilterParts();
+        }
+    }
+    
+    private string _selectedManufacturer = "";
+    private string selectedManufacturer 
+    { 
+        get => _selectedManufacturer;
+        set 
+        {
+            _selectedManufacturer = value;
+            FilterParts();
+        }
+    }
+    
+    private PartsSortMode currentSort = PartsSortMode.PartNumber;
+    private bool sortDescending = false;
+
+    protected override void OnParametersSet()
+    {
+        FilterParts();
+    }
+
+    private void FilterParts()
+    {
+        filteredParts = SummaryParts.Where(p =>
+            (string.IsNullOrEmpty(searchText) || 
+             p.PartNumber.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+             p.PartName.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(selectedManufacturer) || 
+             p.Manufacturer.Equals(selectedManufacturer, StringComparison.OrdinalIgnoreCase))
+        ).ToList();
+
+        ApplySort();
+    }
+
+    private void SortBy(PartsSortMode sortMode)
+    {
+        if (currentSort == sortMode)
+        {
+            sortDescending = !sortDescending;
+        }
+        else
+        {
+            currentSort = sortMode;
+            sortDescending = sortMode == PartsSortMode.QuantityDesc;
+        }
+        
+        ApplySort();
+    }
+
+    private void ApplySort()
+    {
+        filteredParts = currentSort switch
+        {
+            PartsSortMode.PartNumber => sortDescending 
+                ? filteredParts.OrderByDescending(p => p.PartNumber).ToList()
+                : filteredParts.OrderBy(p => p.PartNumber).ToList(),
+            PartsSortMode.PartName => sortDescending 
+                ? filteredParts.OrderByDescending(p => p.PartName).ToList()
+                : filteredParts.OrderBy(p => p.PartName).ToList(),
+            PartsSortMode.QuantityAsc or PartsSortMode.QuantityDesc => sortDescending 
+                ? filteredParts.OrderByDescending(p => p.TotalQuantity).ToList()
+                : filteredParts.OrderBy(p => p.TotalQuantity).ToList(),
+            PartsSortMode.Manufacturer => sortDescending 
+                ? filteredParts.OrderByDescending(p => p.Manufacturer).ToList()
+                : filteredParts.OrderBy(p => p.Manufacturer).ToList(),
+            _ => filteredParts
+        };
+    }
+
+    private string GetSortClass(PartsSortMode sortMode)
+    {
+        return currentSort == sortMode ? "sorted" : "";
+    }
+
+    private string GetSortIcon(PartsSortMode sortMode)
+    {
+        if (currentSort != sortMode) return "bi-chevron-expand";
+        return sortDescending ? "bi-chevron-down" : "bi-chevron-up";
+    }
+
+    private List<string> GetUniqueManufacturers()
+    {
+        return SummaryParts
+            .Where(p => !string.IsNullOrEmpty(p.Manufacturer))
+            .Select(p => p.Manufacturer)
+            .Distinct()
+            .OrderBy(m => m)
+            .ToList();
+    }
+
+    private void ExportToCsv()
+    {
+        // CSV出力機能（今後実装）
+        // TODO: CSV出力ロジックを実装
+    }
+
+    private PartNode CreatePartNodeFromSummary(PartSummary summary)
+    {
+        return new PartNode
+        {
+            PartId = summary.PartId,
+            PartNumber = summary.PartNumber,
+            PartName = summary.PartName,
+            Quantity = summary.TotalQuantity,
+            Unit = summary.Unit,
+            Manufacturer = summary.Manufacturer,
+            Material = summary.Material,
+            Model = summary.Model,
+            Specification = summary.Specification,
+            Remarks = summary.Remarks
+        };
+    }
+}
