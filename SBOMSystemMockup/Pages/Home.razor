@@ -21,8 +21,8 @@
 
 <!-- Filter Section -->
 <div class="card shadow-sm mb-3">
-    <div class="card-header bg-light border-0 py-2">
-        <h6 class="mb-0 text-secondary fw-semibold small">
+    <div class="card-header bg-light border-0 py-2" style="background-color: #dee2e6 !important;">
+        <h6 class="mb-0 fw-semibold small" style="color: #495057 !important;">
             <i class="bi bi-funnel me-1"></i>検索・絞り込み
         </h6>
     </div>
@@ -101,14 +101,6 @@
             </div>
         </div>
         
-        <!-- Search Inputs Row 3 -->
-        <div class="row g-2 mb-2">
-            <div class="col-md-3">
-                <label class="form-label text-muted small mb-1">客先仕様</label>
-                <input class="form-control form-control-sm" placeholder="客先仕様で検索..." @bind="filterCustomerSpec" />
-            </div>
-        </div>
-        
         <!-- Action Buttons -->
         <div class="d-flex gap-2">
             <button class="btn btn-primary btn-sm px-3" @onclick="ApplyFilter">
@@ -161,7 +153,6 @@
                     <th class="border-0 py-2 text-muted small fw-semibold">預けNo.</th>
                     <th class="border-0 py-2 text-muted small fw-semibold">管理区分</th>
                     <th class="border-0 py-2 text-muted small fw-semibold">メーカーOP</th>
-                    <th class="border-0 py-2 text-muted small fw-semibold">客先仕様</th>
                     <th class="border-0 py-2 text-muted small fw-semibold">完成日</th>
                     <th class="border-0 py-2 text-muted small fw-semibold text-center">操作</th>
                 </tr>
@@ -202,11 +193,6 @@
                         <td class="py-1 align-middle" title="@machine.MakerOption">
                             <div class="text-truncate text-muted small" style="max-width: 100px;">
                                 @machine.MakerOption
-                            </div>
-                        </td>
-                        <td class="py-1 align-middle" title="@machine.CustomerSpec">
-                            <div class="text-truncate text-muted small" style="max-width: 100px;">
-                                @machine.CustomerSpec
                             </div>
                         </td>
                         <td class="py-1 align-middle text-muted small">
@@ -275,7 +261,6 @@
     private string selectedManagementType = "";
     private string filterDepositNo = "";
     private string filterMakerOption = "";
-    private string filterCustomerSpec = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -490,8 +475,7 @@
                 (string.IsNullOrEmpty(filterLocation) || m.Location.Contains(filterLocation)) &&
                 (string.IsNullOrEmpty(selectedManagementType) || m.ManagementType.Contains(selectedManagementType)) &&
                 (string.IsNullOrEmpty(filterDepositNo) || m.DepositNo.Contains(filterDepositNo)) &&
-                (string.IsNullOrEmpty(filterMakerOption) || m.MakerOption.Contains(filterMakerOption)) &&
-                (string.IsNullOrEmpty(filterCustomerSpec) || m.CustomerSpec.Contains(filterCustomerSpec))
+                (string.IsNullOrEmpty(filterMakerOption) || m.MakerOption.Contains(filterMakerOption))
             ).ToList();
         }
     }
@@ -510,7 +494,6 @@
         selectedManagementType = "";
         filterDepositNo = "";
         filterMakerOption = "";
-        filterCustomerSpec = "";
         currentPage = 1;
         await LoadMachinesFromDatabase();
     }

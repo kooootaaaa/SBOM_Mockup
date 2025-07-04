@@ -79,40 +79,60 @@
     }
     
     .nav-tabs-modern {
-        border-bottom: 1px solid #dee2e6;
-        margin-bottom: 1rem;
+        border-bottom: 2px solid #dee2e6;
+        margin-bottom: 0;
     }
     
     .nav-tabs-modern .nav-link {
-        border: none;
+        border: 1px solid transparent;
+        border-bottom: none;
+        border-radius: 0.375rem 0.375rem 0 0;
         color: #6c757d;
-        font-weight: 600;
-        padding: 0.75rem 1rem;
-        margin-right: 0.25rem;
+        font-weight: 500;
+        padding: 0.75rem 1.25rem;
+        margin-right: 0.125rem;
+        margin-bottom: -2px;
+        background-color: #e9ecef;
         transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .nav-tabs-modern .nav-link:hover {
+        background-color: #dee2e6;
+        border-color: #dee2e6 #dee2e6 transparent;
     }
     
     .nav-tabs-modern .nav-link.active {
-        background: #0d6efd;
-        color: white;
-        border-bottom: 2px solid #0d6efd;
+        background: white;
+        color: #0d6efd;
+        border-color: #dee2e6 #dee2e6 white;
+        border-bottom: 2px solid white;
+        position: relative;
+        z-index: 1;
     }
     
-    /* 個体情報用の薄いグレー背景 */
+    .tab-content-card {
+        border-top: none;
+        border-radius: 0 0 0.375rem 0.375rem;
+        margin-top: -1px;
+    }
+    
+    /* 個体情報用のグレー背景（基本情報と同じ濃さ） */
     .bg-individual-info {
-        background-color: #f8f9fa !important;
-        border-bottom: 1px solid #dee2e6;
+        background-color: #dee2e6 !important;
+        border-bottom: 1px solid #ced4da;
     }
     
     .bg-individual-info h6 {
-        color: #6c757d !important;
+        color: #495057 !important;
         font-weight: 600;
     }
     
     /* 基本情報・詳細情報用の濃いグレー背景 */
     .bg-info-section {
-        background-color: #e9ecef !important;
-        border-bottom: 1px solid #dee2e6;
+        background-color: #dee2e6 !important;
+        border-bottom: 1px solid #ced4da;
     }
     
     .bg-info-section h6 {
@@ -269,22 +289,22 @@ else
 <!-- タブ切替 -->
 <ul class="nav nav-tabs nav-tabs-modern">
     <li class="nav-item">
-        <a class="nav-link @(activeTab==0 ? "active" : "")" href="#" @onclick="() => activeTab=0">製造情報</a>
+        <a class="nav-link @(activeTab==0 ? "active" : "")" href="#" @onclick="() => activeTab=0" @onclick:preventDefault="true">製造情報</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link @(activeTab==1 ? "active" : "")" href="#" @onclick="() => activeTab=1">出荷情報</a>
+        <a class="nav-link @(activeTab==1 ? "active" : "")" href="#" @onclick="() => activeTab=1" @onclick:preventDefault="true">出荷情報</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link @(activeTab==2 ? "active" : "")" href="#" @onclick="() => activeTab=2">預け情報</a>
+        <a class="nav-link @(activeTab==2 ? "active" : "")" href="#" @onclick="() => activeTab=2" @onclick:preventDefault="true">預け情報</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link @(activeTab==3 ? "active" : "")" href="#" @onclick="() => activeTab=3">メンテナンス情報</a>
+        <a class="nav-link @(activeTab==3 ? "active" : "")" href="#" @onclick="() => activeTab=3" @onclick:preventDefault="true">メンテナンス情報</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link @(activeTab==4 ? "active" : "")" href="#" @onclick="() => activeTab=4">クレーム情報</a>
+        <a class="nav-link @(activeTab==4 ? "active" : "")" href="#" @onclick="() => activeTab=4" @onclick:preventDefault="true">クレーム情報</a>
     </li>
 </ul>
-<div class="card shadow-sm">
+<div class="card shadow-sm tab-content-card">
     <div class="card-body py-3">
         @if (activeTab == 0)
         {
@@ -399,26 +419,26 @@ else
         }
         else if (activeTab == 1)
         {
-            <div class="text-center py-4">
-                <h6 class="text-muted">出荷情報タブの内容（今後拡張予定）</h6>
+            <div class="text-center py-5">
+                <p class="text-muted mb-0">出荷情報</p>
             </div>
         }
         else if (activeTab == 2)
         {
-            <div class="text-center py-4">
-                <h6 class="text-muted">預け情報タブの内容（今後拡張予定）</h6>
+            <div class="text-center py-5">
+                <p class="text-muted mb-0">預け情報</p>
             </div>
         }
         else if (activeTab == 3)
         {
-            <div class="text-center py-4">
-                <h6 class="text-muted">メンテナンス情報タブの内容（今後拡張予定）</h6>
+            <div class="text-center py-5">
+                <p class="text-muted mb-0">メンテナンス情報</p>
             </div>
         }
         else if (activeTab == 4)
         {
-            <div class="text-center py-4">
-                <h6 class="text-muted">クレーム情報タブの内容（今後拡張予定）</h6>
+            <div class="text-center py-5">
+                <p class="text-muted mb-0">クレーム情報</p>
             </div>
         }
     </div>
